@@ -168,6 +168,12 @@
     }
 
     button:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    button:active { transform: translateY(0) scale(.98); }
+    button:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+      transform: none;
+    }
 
     #authStatus {
       margin-top: 12px;
@@ -662,6 +668,8 @@
     let messagesUnsub = null;
     let presenceUnsub = null;
     const mobileMedia = window.matchMedia("(max-width: 640px)");
+    let isAuthSubmitting = false;
+    let isSendingMessage = false;
 
     function esc(v) {
       return String(v)
@@ -676,6 +684,32 @@
       const el = $("authStatus");
       el.textContent = text;
       el.className = isError ? "error" : "";
+    }
+
+    function clearAuthArtifacts() {
+      localStorage.removeItem(LS_SESSION);
+      sessionStorage.removeItem(LS_SESSION);
+      document.cookie = `${LS_SESSION}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+      document.cookie = `messenger_session=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+    }
+
+    function setAuthLoading(loading) {
+      isAuthSubmitting = loading;
+      $("authSubmit").disabled = loading;
+      $("loginTab").disabled = loading;
+      $("registerTab").disabled = loading;
+      $("usernameInput").disabled = loading;
+      $("passwordInput").disabled = loading;
+      $("authSubmit").textContent = loading
+        ? (mode === "login" ? "Вход..." : "Регистрация...")
+        : (mode === "login" ? "Войти" : "Зарегистрироваться");
+    }
+
+    function guardAuthAccess() {
+      if (me) return true;
+      $("chatPage").style.display = "none";
+      $("authPage").style.display = "flex";
+      return false;
     }
 
     function toKey(login) {
@@ -709,6 +743,7 @@
     }
 
     function setAuthMode(nextMode) {
+      if (isAuthSubmitting) return;
       mode = nextMode;
       $("loginTab").classList.toggle("active", mode === "login");
       $("registerTab").classList.toggle("active", mode === "register");
@@ -941,6 +976,7 @@
     }
 
     function openDialog(peerLogin) {
+      if (!guardAuthAccess()) return;
       activePeer = peerLogin;
       activeChatId = chatIdByUsers(me.username, activePeer);
 
@@ -955,6 +991,7 @@
     }
 
     async function sendMessage(text) {
+      if (!guardAuthAccess()) return;
       if (!activePeer || !activeChatId) return;
       const clean = text.trim();
       if (!clean) return;
@@ -992,6 +1029,7 @@
     }
 
     async function deleteMessage(messageId) {
+      if (!guardAuthAccess()) return;
       if (!activeChatId || !activePeer || !messageId) return;
 
       const messageRef = ref(db, `chats/${activeChatId}/messages/${messageId}`);
@@ -1009,6 +1047,7 @@
     }
 
     async function deleteChatWithPeer(peerUsername = activePeer) {
+      if (!guardAuthAccess()) return;
       if (!me || !peerUsername) return;
       const chatId = chatIdByUsers(me.username, peerUsername);
       const peerKey = toKey(peerUsername);
@@ -1038,6 +1077,7 @@
     }
 
     async function searchUsers(prefix) {
+      if (!guardAuthAccess()) return;
       const term = toKey(prefix);
       if (term.length < 2) {
         renderSearch([]);
@@ -1076,7 +1116,7 @@
 
         console.error("Search error:", err);
         renderSearch([]);
-        $("searchResults").innerHTML = '<div class="user-item"><div class="user-sub">Ошибка поиска. Поверьте rules/index в Firebase.</div></div>';
+        $("searchResults").innerHTML = '<div class="user-item"><div class="user-sub">Ошибка поиска. Проверьте rules/index в Firebase.</div></div>';
       }
     }
 
@@ -1098,7 +1138,7 @@
       me = null;
       activePeer = null;
       activeChatId = null;
-      localStorage.removeItem(LS_SESSION);
+      clearAuthArtifacts();
 
       $("chatPage").style.display = "none";
       $("authPage").style.display = "flex";
@@ -1122,17 +1162,20 @@
         if (!session?.usernameKey) return;
 
         const snap = await get(ref(db, `users/${session.usernameKey}`));
-        if (!snap.exists()) {
-          localStorage.removeItem(LS_SESSION);
-          return;
-        }
+        clearAuthArtifacts();
 
-        await beginSession({
-          username: snap.val().username,
-          usernameKey: session.usernameKey
-        });
+        if (snap.exists()) {
+          const savedUsername = String(snap.val()?.username || "").trim();
+          if (savedUsername) {
+            $("usernameInput").value = savedUsername;
+            $("passwordInput").value = "";
+          }
+          setStatus("Сессия найдена. Введите пароль для входа.", false);
+        } else {
+          setStatus("Сессия устарела. Войдите заново.", false);
+        }
       } catch {
-        localStorage.removeItem(LS_SESSION);
+        clearAuthArtifacts();
       }
     }
 
@@ -1147,6 +1190,7 @@
 
       $("authForm").addEventListener("submit", async (e) => {
         e.preventDefault();
+        if (isAuthSubmitting) return;
 
         const loginValue = $("usernameInput").value.trim();
         const password = $("passwordInput").value;
@@ -1162,6 +1206,7 @@
         }
 
         try {
+          setAuthLoading(true);
           setStatus(mode === "login" ? "Выполняется вход..." : "Выполняется регистрация...");
           const user = mode === "login"
             ? await login(loginValue, password)
@@ -1171,6 +1216,8 @@
           await beginSession(user);
         } catch (err) {
           setStatus(err?.message || "Ошибка авторизации.", true);
+        } finally {
+          setAuthLoading(false);
         }
       });
 
@@ -1186,16 +1233,23 @@
 
       $("composer").addEventListener("submit", async (e) => {
         e.preventDefault();
-        if (!me || !activeChatId) return;
+        if (!me || !activeChatId || isSendingMessage) return;
 
         const input = $("messageInput");
         const text = input.value;
         input.value = "";
+        isSendingMessage = true;
+        $("sendBtn").disabled = true;
+        $("sendBtn").textContent = "Отправка...";
 
         try {
           await sendMessage(text);
         } catch {
           input.value = text;
+        } finally {
+          isSendingMessage = false;
+          $("sendBtn").disabled = false;
+          $("sendBtn").textContent = "Отправить";
         }
       });
 
@@ -1219,6 +1273,10 @@
       mobileMedia.addEventListener("change", (event) => {
         if (!event.matches) setPanelOpen(false);
       });
+
+      window.addEventListener("popstate", () => {
+        guardAuthAccess();
+      });
     }
 
     function initTheme() {
@@ -1228,6 +1286,7 @@
 
     function init() {
       initTheme();
+      guardAuthAccess();
       bindEvents();
       restoreSession().catch(() => {});
     }
