@@ -377,7 +377,7 @@
       <form id="authForm" autocomplete="off">
         <div class="field">
           <label for="usernameInput">Логин</label>
-          <input id="usernameInput" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_.-]+" placeholder="Например: max_user" />
+          <input id="usernameInput" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_.\-]{3,24}" placeholder="Например: max_user" />
         </div>
 
         <div class="field">
@@ -750,9 +750,13 @@
         return;
       }
 
-      try {
-        console.log("Searching for:", term);
+      const mapRows = (raw) => Object.values(raw || {})
+        .filter((u) => u.usernameKey !== me.usernameKey)
+        .filter((u) => String(u.usernameKey || "").startsWith(term))
+        .slice(0, 30)
+        .map((u) => ({ username: u.username }));
 
+      try {
         const q = query(
           ref(db, "users"),
           orderByChild("usernameKey"),
@@ -761,15 +765,21 @@
         );
 
         const snap = await get(q);
-        console.log("Search result:", snap.val());
-
-        const rows = Object.values(snap.val() || {})
-          .filter((u) => u.usernameKey !== me.usernameKey)
-          .slice(0, 30)
-          .map((u) => ({ username: u.username }));
-
-        renderSearch(rows);
+        renderSearch(mapRows(snap.val()));
       } catch (err) {
+        const message = String(err?.message || "");
+        const needsIndex = message.includes("Index not defined") || message.includes(".indexOn");
+
+        if (needsIndex) {
+          try {
+            const fullSnap = await get(ref(db, "users"));
+            renderSearch(mapRows(fullSnap.val()));
+            return;
+          } catch (fallbackErr) {
+            console.error("Search fallback error:", fallbackErr);
+          }
+        }
+
         console.error("Search error:", err);
         renderSearch([]);
         $("searchResults").innerHTML = '<div class="user-item"><div class="user-sub">Ошибка поиска. Проверьте rules/index в Firebase.</div></div>';
