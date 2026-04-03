@@ -37,28 +37,34 @@
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    html, body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+
     body {
       font-family: Arial, sans-serif;
       min-height: 100dvh;
       background: var(--bg-primary);
       color: var(--text-primary);
-      overflow: hidden;
-      transition: all .3s ease;
+      overflow-y: auto;
+      transition: background-color .3s ease, color .3s ease;
     }
 
     .theme-toggle {
       position: fixed;
-      top: 15px;
-      right: 15px;
+      top: 12px;
+      right: 12px;
       z-index: 1000;
-      width: 40px;
-      height: 40px;
+      width: 44px;
+      height: 44px;
       background: var(--card-bg);
       border: 1px solid var(--border-color);
       border-radius: 50%;
       cursor: pointer;
       font-size: 18px;
-      line-height: 36px;
+      line-height: 42px;
       text-align: center;
       backdrop-filter: blur(10px);
       transition: all .3s;
@@ -77,23 +83,22 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      padding: 20px;
+      padding: 16px;
     }
 
     .auth-container {
       background: var(--card-bg);
-      padding: 40px;
+      padding: 20px;
       border-radius: 25px;
       backdrop-filter: blur(10px);
-      width: 90%;
-      max-width: 450px;
+      width: min(100%, 450px);
       text-align: center;
       border: 1px solid var(--border-color);
     }
 
     .auth-container h1 {
-      font-size: 32px;
-      margin-bottom: 20px;
+      font-size: clamp(1.6rem, 5vw, 2rem);
+      margin-bottom: 16px;
     }
 
     .tabs {
@@ -105,7 +110,8 @@
 
     .tab {
       width: 100%;
-      padding: 12px;
+      min-height: 44px;
+      padding: 10px 12px;
       background: var(--card-bg);
       border: 1px solid var(--border-color);
       border-radius: 12px;
@@ -125,7 +131,7 @@
 
     .field label {
       display: block;
-      font-size: 12px;
+      font-size: .75rem;
       color: var(--text-secondary);
       margin-bottom: 6px;
       font-weight: 700;
@@ -134,10 +140,11 @@
 
     input {
       width: 100%;
-      padding: 14px;
+      min-height: 44px;
+      padding: 10px 12px;
       border: 2px solid var(--border-color);
       border-radius: 15px;
-      font-size: 15px;
+      font-size: 1rem;
       background: var(--card-bg);
       color: var(--text-primary);
     }
@@ -147,13 +154,14 @@
 
     button {
       width: 100%;
-      padding: 14px;
+      min-height: 44px;
+      padding: 10px 14px;
       margin-top: 14px;
       background: var(--accent);
       color: white;
       border: none;
       border-radius: 15px;
-      font-size: 16px;
+      font-size: 1rem;
       font-weight: bold;
       cursor: pointer;
       transition: all .3s;
@@ -172,41 +180,66 @@
     #authStatus.error { color: var(--error); }
 
     #chatPage {
-      min-height: 100dvh;
       height: 100dvh;
       display: none;
       flex-direction: row;
       background: var(--bg-primary);
       overflow: hidden;
+      position: relative;
     }
 
     #leftPanel {
-      width: 330px;
+      width: min(86vw, 360px);
+      max-width: 360px;
       background: var(--bg-secondary);
       border-right: 1px solid var(--bg-tertiary);
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      z-index: 30;
+      transform: translateX(-100%);
+      transition: transform .24s ease;
+    }
+
+    #chatPage.panel-open #leftPanel { transform: translateX(0); }
+
+    #panelBackdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      z-index: 20;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease;
+    }
+
+    #chatPage.panel-open #panelBackdrop {
+      opacity: 1;
+      pointer-events: auto;
     }
 
     .panel-section {
-      padding: 16px;
+      padding: 12px;
       border-bottom: 1px solid var(--bg-tertiary);
     }
 
     .profile-login {
       font-weight: 700;
-      font-size: 18px;
+      font-size: clamp(1rem, 2.8vw, 1.125rem);
       margin-bottom: 4px;
     }
 
     .profile-sub {
-      font-size: 12px;
+      font-size: .75rem;
       color: var(--text-secondary);
     }
 
     .section-title {
-      font-size: 12px;
+      font-size: .75rem;
       color: var(--text-secondary);
       margin-bottom: 8px;
       font-weight: 700;
@@ -228,7 +261,8 @@
 
     .user-item {
       width: 100%;
-      padding: 12px;
+      min-height: 44px;
+      padding: 10px;
       margin: 0;
       background: var(--card-bg);
       border: 1px solid var(--border-color);
@@ -240,7 +274,7 @@
     .user-item:hover { background: rgba(0, 212, 170, .13); }
     .user-item.active { border-color: var(--accent); }
 
-    .user-main { font-weight: 700; font-size: 14px; }
+    .user-main { font-weight: 700; font-size: .9rem; }
     .user-sub { margin-top: 4px; color: var(--text-secondary); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     .logout {
@@ -256,17 +290,18 @@
       display: flex;
       flex-direction: column;
       min-width: 0;
+      width: 100%;
     }
 
     #chatHeader {
       background: var(--header-gradient);
-      padding: 16px 24px;
-      font-size: 18px;
+      padding: 12px;
+      font-size: clamp(1rem, 3.5vw, 1.125rem);
       font-weight: 700;
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      gap: 12px;
+      align-items: flex-start;
+      gap: 10px;
     }
 
     #presence {
@@ -279,16 +314,30 @@
       align-items: center;
       gap: 8px;
       flex-shrink: 0;
+      align-self: flex-start;
     }
 
     .danger-btn {
       width: auto;
       margin-top: 0;
+      min-height: 44px;
       padding: 8px 12px;
       border-radius: 10px;
       border: 1px solid rgba(255, 255, 255, 0.35);
       background: rgba(0, 0, 0, 0.2);
       font-size: 12px;
+    }
+
+    .menu-btn {
+      width: auto;
+      min-width: 44px;
+      min-height: 44px;
+      margin-top: 0;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      background: rgba(0, 0, 0, 0.2);
+      font-size: .9rem;
     }
 
     .danger-btn:hover {
@@ -304,7 +353,7 @@
     #messages {
       flex: 1;
       min-height: 0;
-      padding: 20px;
+      padding: 12px;
       overflow-y: auto;
       background: var(--bg-primary);
       display: flex;
@@ -323,8 +372,8 @@
     }
 
     .message {
-      max-width: 72%;
-      border-radius: 20px;
+      max-width: 88%;
+      border-radius: 16px;
       overflow: hidden;
     }
 
@@ -342,11 +391,11 @@
       border-bottom-left-radius: 6px;
     }
 
-    .message-content { padding: 13px 16px; }
+    .message-content { padding: 10px 12px; }
 
     .message-header {
       font-weight: 700;
-      font-size: 13px;
+      font-size: .8rem;
       margin-bottom: 5px;
       display: flex;
       justify-content: space-between;
@@ -365,7 +414,8 @@
     .message-delete {
       width: auto;
       margin-top: 8px;
-      padding: 6px 10px;
+      min-height: 44px;
+      padding: 8px 10px;
       border: 1px solid rgba(255, 255, 255, 0.25);
       border-radius: 8px;
       background: rgba(0, 0, 0, 0.2);
@@ -377,59 +427,107 @@
     }
 
     #composer {
-      padding: 16px 20px;
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
       background: var(--bg-secondary);
       display: flex;
-      gap: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
       border-top: 1px solid var(--bg-tertiary);
     }
 
-    #messageInput { flex: 1; }
+    #messageInput { flex: 1 1 100%; }
 
     #sendBtn {
-      width: 130px;
+      width: 100%;
       margin-top: 0;
       border-radius: 15px;
       flex-shrink: 0;
     }
+    img, video {
+      max-width: 100%;
+      height: auto;
+    }
 
-    @media (max-width: 900px) {
+    @media (max-width: 640px) {
+      .auth-container {
+        border-radius: 18px;
+      }
+
+      #chatCode {
+        display: none;
+      }
+
+      .header-actions {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+      }
+    }
+
+    @media (min-width: 641px) and (max-width: 1024px) {
       #chatPage {
-        flex-direction: column;
-        height: 100dvh;
-        overflow: hidden;
+        flex-direction: row;
       }
 
       #leftPanel {
-        width: 100%;
-        height: 44dvh;
-        min-height: 280px;
-        max-height: 48dvh;
-        overflow: hidden;
-        display: grid;
-        grid-template-rows: auto auto minmax(0, 1fr) minmax(0, 1fr) auto;
+        width: min(42vw, 360px);
+        position: static;
+        transform: none;
       }
 
-      .panel-section {
-        min-height: 0;
+      #panelBackdrop,
+      #panelToggle {
+        display: none;
       }
 
-      #searchResults,
-      #dialogsList {
-        max-height: none;
-        height: 100%;
+      #sendBtn {
+        width: 150px;
       }
 
-      #chatArea {
-        min-height: 0;
-        height: 56dvh;
+      #messageInput {
+        flex: 1 1 auto;
+      }
+    }
+
+    @media (min-width: 1025px) {
+      #chatPage {
+        flex-direction: row;
       }
 
-      .message { max-width: 90%; }
+      #leftPanel {
+        width: 330px;
+        position: static;
+        transform: none;
+      }
 
-      .header-actions {
-        width: 100%;
-        justify-content: flex-end;
+      #panelBackdrop,
+      #panelToggle {
+        display: none;
+      }
+
+      .auth-container {
+        padding: 40px;
+      }
+
+      #chatHeader {
+        padding: 16px 24px;
+        align-items: center;
+      }
+
+      #composer {
+        flex-wrap: nowrap;
+        padding: 16px 20px;
+      }
+
+      #messageInput {
+        flex: 1 1 auto;
+      }
+
+      #sendBtn {
+        width: 130px;
+      }
+
+      .message {
+        max-width: 72%;
       }
     }
   </style>
@@ -464,6 +562,7 @@
   </section>
 
   <section id="chatPage">
+    <div id="panelBackdrop" aria-hidden="true"></div>
     <aside id="leftPanel">
       <div class="panel-section">
         <div class="profile-login" id="meLogin">@unknown</div>
@@ -497,6 +596,7 @@
           <div id="presence">Статус: —</div>
         </div>
         <div class="header-actions">
+          <button id="panelToggle" class="menu-btn" type="button" aria-label="Открыть меню">Меню</button>
           <div id="chatCode" style="font-size:12px; opacity:.9;">chat: ---</div>
           <button id="deleteChatBtn" class="danger-btn" type="button" disabled>Удалить чат</button>
         </div>
@@ -561,6 +661,7 @@
     let dialogsUnsub = null;
     let messagesUnsub = null;
     let presenceUnsub = null;
+    const mobileMedia = window.matchMedia("(max-width: 640px)");
 
     function esc(v) {
       return String(v)
@@ -613,6 +714,10 @@
       $("registerTab").classList.toggle("active", mode === "register");
       $("authSubmit").textContent = mode === "login" ? "Войти" : "Зарегистрироваться";
       setStatus(mode === "login" ? "Режим входа." : "Режим регистрации.", false);
+    }
+
+    function setPanelOpen(isOpen) {
+      $("chatPage").classList.toggle("panel-open", isOpen);
     }
 
     function renderSearch(users) {
@@ -785,6 +890,7 @@
       $("meLogin").textContent = `@${me.username}`;
       $("authPage").style.display = "none";
       $("chatPage").style.display = "flex";
+      setPanelOpen(false);
 
       await setOnlinePresence();
       watchDialogs();
@@ -845,6 +951,7 @@
       watchPresence();
       watchMessages();
       watchDialogs();
+      if (mobileMedia.matches) setPanelOpen(false);
     }
 
     async function sendMessage(text) {
@@ -969,7 +1076,7 @@
 
         console.error("Search error:", err);
         renderSearch([]);
-        $("searchResults").innerHTML = '<div class="user-item"><div class="user-sub">Ошибка поиска. Проверьте rules/index в Firebase.</div></div>';
+        $("searchResults").innerHTML = '<div class="user-item"><div class="user-sub">Ошибка поиска. Поверьте rules/index в Firebase.</div></div>';
       }
     }
 
@@ -1003,6 +1110,7 @@
       $("dialogsList").innerHTML = "";
       $("searchResults").innerHTML = "";
       $("messageInput").value = "";
+      setPanelOpen(false);
     }
 
     async function restoreSession() {
@@ -1097,6 +1205,19 @@
 
       $("deleteChatBtn").addEventListener("click", () => {
         deleteChatWithPeer().catch(() => {});
+      });
+
+      $("panelToggle").addEventListener("click", () => {
+        const isOpen = $("chatPage").classList.contains("panel-open");
+        setPanelOpen(!isOpen);
+      });
+
+      $("panelBackdrop").addEventListener("click", () => {
+        setPanelOpen(false);
+      });
+
+      mobileMedia.addEventListener("change", (event) => {
+        if (!event.matches) setPanelOpen(false);
       });
     }
 
