@@ -2,118 +2,75 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
-  <title>Мессенджер | Общайся в реальном времени</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Мессенджер</title>
   <style>
-    /* ----- RESET & GLOBAL ----- */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    html, body {
-      height: 100%;
-      overflow: hidden; /* полная прокрутка только внутри блоков */
-      background: var(--bg-primary);
-    }
-
     :root {
       --bg-primary: #0f0f23;
       --bg-secondary: #1a1a2e;
-      --bg-tertiary: #2a2a3c;
+      --bg-tertiary: #333;
       --text-primary: white;
       --text-secondary: rgba(255, 255, 255, 0.7);
       --card-bg: rgba(255, 255, 255, 0.05);
-      --border-color: rgba(255, 255, 255, 0.15);
+      --border-color: rgba(255, 255, 255, 0.2);
       --accent: #00d4aa;
       --accent-hover: #00b894;
       --gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       --header-gradient: linear-gradient(90deg, #667eea, #764ba2);
       --error: #ff7373;
-      --scrollbar-track: rgba(0, 0, 0, 0.2);
-      --scrollbar-thumb: rgba(0, 212, 170, 0.5);
     }
 
     [data-theme="light"] {
-      --bg-primary: #f1f5f9;
+      --bg-primary: #f8fafc;
       --bg-secondary: #ffffff;
-      --bg-tertiary: #e2e8f0;
-      --text-primary: #0f172a;
-      --text-secondary: #475569;
-      --card-bg: rgba(255, 255, 255, 0.9);
-      --border-color: rgba(0, 0, 0, 0.08);
-      --accent: #0fba9e;
-      --accent-hover: #0d9f86;
-      --gradient: linear-gradient(135deg, #b0f3f1 0%, #ffcfdf 100%);
-      --header-gradient: linear-gradient(90deg, #2b86c5, #784ba0);
-      --scrollbar-track: #e2e8f0;
-      --scrollbar-thumb: #0fba9e;
+      --bg-tertiary: #f1f5f9;
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --card-bg: rgba(255, 255, 255, 0.8);
+      --border-color: rgba(0, 0, 0, 0.1);
+      --accent: #00d4aa;
+      --accent-hover: #00b894;
+      --gradient: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+      --header-gradient: linear-gradient(90deg, #4facfe 0%, #00f2fe 100%);
+      --error: #d62828;
     }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      font-family: Arial, sans-serif;
+      min-height: 100dvh;
       background: var(--bg-primary);
       color: var(--text-primary);
-      transition: background 0.2s ease, color 0.2s;
+      overflow: hidden;
+      transition: all .3s ease;
     }
 
-    /* ----- КАСТОМНЫЙ СКРОЛЛБАР (красивый и тактильный) ----- */
-    ::-webkit-scrollbar {
-      width: 5px;
-      height: 5px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: var(--scrollbar-track);
-      border-radius: 10px;
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: var(--scrollbar-thumb);
-      border-radius: 10px;
-      transition: background 0.2s;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--accent);
-    }
-
-    /* плавный скролл для списков на iOS */
-    .scrollable {
-      -webkit-overflow-scrolling: touch;
-      overflow-y: auto;
-    }
-
-    /* ----- ТЕМНАЯ / СВЕТЛАЯ КНОПКА ----- */
     .theme-toggle {
       position: fixed;
-      top: 16px;
-      right: 16px;
-      z-index: 1100;
-      width: 44px;
-      height: 44px;
+      top: 15px;
+      right: 15px;
+      z-index: 1000;
+      width: 40px;
+      height: 40px;
       background: var(--card-bg);
-      backdrop-filter: blur(12px);
       border: 1px solid var(--border-color);
       border-radius: 50%;
       cursor: pointer;
-      font-size: 22px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.25s ease;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      font-size: 18px;
+      line-height: 36px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      transition: all .3s;
     }
 
     .theme-toggle:hover {
       background: var(--accent);
-      transform: scale(1.05);
-      box-shadow: 0 6px 16px rgba(0, 212, 170, 0.3);
+      color: white;
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0, 212, 170, .4);
     }
 
-    /* ----- АВТОРИЗАЦИЯ ----- */
     #authPage {
       min-height: 100dvh;
       background: var(--gradient);
@@ -125,154 +82,137 @@
 
     .auth-container {
       background: var(--card-bg);
-      backdrop-filter: blur(16px);
-      padding: 32px 28px;
-      border-radius: 36px;
-      width: 100%;
-      max-width: 460px;
+      padding: 40px;
+      border-radius: 25px;
+      backdrop-filter: blur(10px);
+      width: 90%;
+      max-width: 450px;
+      text-align: center;
       border: 1px solid var(--border-color);
-      box-shadow: 0 25px 45px rgba(0, 0, 0, 0.2);
     }
 
     .auth-container h1 {
-      font-size: 2rem;
-      margin-bottom: 24px;
-      text-align: center;
-      letter-spacing: -0.3px;
+      font-size: 32px;
+      margin-bottom: 20px;
     }
 
     .tabs {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 24px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
     }
 
     .tab {
-      flex: 1;
+      width: 100%;
       padding: 12px;
       background: var(--card-bg);
       border: 1px solid var(--border-color);
-      border-radius: 60px;
+      border-radius: 12px;
       color: var(--text-primary);
-      font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
+      font-size: 14px;
+      font-weight: 700;
     }
 
     .tab.active {
       background: var(--accent);
       border-color: var(--accent);
-      color: #0f0f23;
+      color: white;
     }
 
-    .field {
-      margin-top: 20px;
-    }
+    .field { text-align: left; margin-top: 12px; }
 
     .field label {
       display: block;
-      font-size: 13px;
-      font-weight: 600;
-      margin-bottom: 8px;
+      font-size: 12px;
       color: var(--text-secondary);
+      margin-bottom: 6px;
+      font-weight: 700;
+      letter-spacing: .04em;
     }
 
     input {
       width: 100%;
-      padding: 14px 18px;
-      border: 1.5px solid var(--border-color);
-      border-radius: 24px;
-      font-size: 16px;
+      padding: 14px;
+      border: 2px solid var(--border-color);
+      border-radius: 15px;
+      font-size: 15px;
       background: var(--card-bg);
       color: var(--text-primary);
-      transition: all 0.2s;
     }
 
-    input:focus {
-      border-color: var(--accent);
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.2);
-    }
+    input::placeholder { color: var(--text-secondary); }
+    input:focus { border-color: var(--accent); outline: none; background: rgba(255, 255, 255, .2); }
 
     button {
       width: 100%;
       padding: 14px;
-      margin-top: 24px;
+      margin-top: 14px;
       background: var(--accent);
+      color: white;
       border: none;
-      border-radius: 60px;
+      border-radius: 15px;
       font-size: 16px;
-      font-weight: 700;
-      color: #0f0f23;
+      font-weight: bold;
       cursor: pointer;
-      transition: all 0.2s;
+      transition: all .3s;
     }
 
-    button:hover {
-      background: var(--accent-hover);
-      transform: translateY(-1px);
-    }
+    button:hover { background: var(--accent-hover); transform: translateY(-1px); }
 
     #authStatus {
-      margin-top: 20px;
-      font-size: 13px;
-      text-align: center;
+      margin-top: 12px;
+      min-height: 20px;
       color: var(--text-secondary);
+      font-size: 13px;
+      line-height: 1.4;
     }
 
-    #authStatus.error {
-      color: var(--error);
-    }
+    #authStatus.error { color: var(--error); }
 
-    /* ----- ОСНОВНОЙ ЧАТ (FLEX) ----- */
     #chatPage {
+      min-height: 100dvh;
       display: none;
-      height: 100dvh;
       flex-direction: row;
       background: var(--bg-primary);
     }
 
-    /* ЛЕВАЯ ПАНЕЛЬ (ДИАЛОГИ + ПОИСК) */
     #leftPanel {
       width: 330px;
       background: var(--bg-secondary);
-      border-right: 1px solid var(--border-color);
+      border-right: 1px solid var(--bg-tertiary);
       display: flex;
       flex-direction: column;
-      overflow: hidden;
     }
 
     .panel-section {
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border-color);
+      padding: 16px;
+      border-bottom: 1px solid var(--bg-tertiary);
     }
 
     .profile-login {
-      font-weight: 800;
-      font-size: 1.2rem;
-      background: linear-gradient(120deg, var(--accent), #a0e9ff);
-      background-clip: text;
-      -webkit-background-clip: text;
-      color: transparent;
+      font-weight: 700;
+      font-size: 18px;
+      margin-bottom: 4px;
+    }
+
+    .profile-sub {
+      font-size: 12px;
+      color: var(--text-secondary);
     }
 
     .section-title {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
+      font-size: 12px;
       color: var(--text-secondary);
-      margin-bottom: 12px;
+      margin-bottom: 8px;
+      font-weight: 700;
+      letter-spacing: .05em;
+      text-transform: uppercase;
     }
 
-    #searchInput {
-      border-radius: 40px;
-      padding: 12px 16px;
-      font-size: 14px;
-    }
-
-    /* Скролл-контейнеры */
-    .scroll-list {
+    #searchResults,
+    #dialogsList {
       max-height: 28vh;
       overflow-y: auto;
       display: flex;
@@ -284,101 +224,80 @@
     .user-item {
       width: 100%;
       padding: 12px;
+      margin: 0;
       background: var(--card-bg);
       border: 1px solid var(--border-color);
-      border-radius: 18px;
+      border-radius: 10px;
       text-align: left;
-      transition: all 0.15s;
-      cursor: pointer;
+      color: var(--text-primary);
     }
 
-    .user-item:hover {
-      background: rgba(0, 212, 170, 0.15);
-      transform: scale(0.99);
-    }
+    .user-item:hover { background: rgba(0, 212, 170, .13); }
+    .user-item.active { border-color: var(--accent); }
 
-    .user-item.active {
-      border-left: 4px solid var(--accent);
-      background: rgba(0, 212, 170, 0.1);
-    }
-
-    .user-main {
-      font-weight: 700;
-      font-size: 14px;
-    }
-
-    .user-sub {
-      font-size: 11px;
-      color: var(--text-secondary);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    .user-main { font-weight: 700; font-size: 14px; }
+    .user-sub { margin-top: 4px; color: var(--text-secondary); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     .logout {
-      background: rgba(255, 80, 80, 0.2);
-      color: var(--text-primary);
-      margin-top: 0;
+      background: rgba(255, 0, 0, .25);
       border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      border-radius: 12px;
+      margin-top: 0;
     }
 
-    /* ОБЛАСТЬ ЧАТА */
     #chatArea {
       flex: 1;
       display: flex;
       flex-direction: column;
       min-width: 0;
-      background: var(--bg-primary);
     }
 
     #chatHeader {
       background: var(--header-gradient);
-      padding: 14px 20px;
+      padding: 16px 24px;
+      font-size: 18px;
       font-weight: 700;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    #chatTitle {
-      font-size: 1.1rem;
+      gap: 12px;
     }
 
     #presence {
       font-size: 12px;
-      opacity: 0.85;
+      color: rgba(255,255,255,.9);
     }
 
-    /* ОКНО СООБЩЕНИЙ */
     #messages {
       flex: 1;
-      padding: 20px 16px;
+      padding: 20px;
       overflow-y: auto;
+      background: var(--bg-primary);
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      background: var(--bg-primary);
+      gap: 10px;
+    }
+
+    .empty {
+      margin: auto;
+      text-align: center;
+      color: var(--text-secondary);
+      max-width: 520px;
+      line-height: 1.5;
     }
 
     .message {
-      max-width: 75%;
-      border-radius: 24px;
+      max-width: 72%;
+      border-radius: 20px;
       overflow: hidden;
-      animation: fadeIn 0.2s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(6px);}
-      to { opacity: 1; transform: translateY(0);}
     }
 
     .message.own {
       align-self: flex-end;
-      background: linear-gradient(125deg, var(--accent), var(--accent-hover));
+      background: linear-gradient(135deg, var(--accent), var(--accent-hover));
       border-bottom-right-radius: 6px;
-      color: #0f0f23;
+      color: white;
     }
 
     .message.other {
@@ -388,150 +307,68 @@
       border-bottom-left-radius: 6px;
     }
 
-    .message-content {
-      padding: 10px 16px;
-    }
+    .message-content { padding: 13px 16px; }
 
     .message-header {
       font-weight: 700;
-      font-size: 12px;
+      font-size: 13px;
       margin-bottom: 5px;
       display: flex;
       justify-content: space-between;
       gap: 12px;
-      opacity: 0.85;
     }
 
-    .message-text {
-      line-height: 1.4;
-      word-wrap: break-word;
-      font-size: 15px;
-    }
+    .message-text { line-height: 1.45; word-wrap: break-word; }
 
     .message-time {
-      font-size: 10px;
+      font-size: 11px;
+      opacity: .8;
+      color: var(--text-secondary);
       white-space: nowrap;
     }
 
-    /* КОМПОЗЕР */
     #composer {
-      padding: 14px 16px;
+      padding: 16px 20px;
       background: var(--bg-secondary);
       display: flex;
-      gap: 12px;
-      border-top: 1px solid var(--border-color);
+      gap: 10px;
+      border-top: 1px solid var(--bg-tertiary);
     }
 
-    #messageInput {
-      flex: 1;
-      border-radius: 32px;
-      background: var(--card-bg);
-      font-size: 15px;
-    }
+    #messageInput { flex: 1; }
 
     #sendBtn {
-      width: auto;
-      min-width: 100px;
+      width: 130px;
       margin-top: 0;
-      border-radius: 40px;
-      background: var(--accent);
-      font-weight: 700;
+      border-radius: 15px;
+      flex-shrink: 0;
     }
 
-    /* ----- МОБИЛЬНАЯ АДАПТАЦИЯ (УЛУЧШЕННАЯ) ----- */
-    @media (max-width: 780px) {
+    @media (max-width: 900px) {
       #chatPage {
         flex-direction: column;
       }
 
       #leftPanel {
         width: 100%;
-        max-height: 40vh;
-        border-right: none;
-        border-bottom: 1px solid var(--border-color);
+        max-height: 42vh;
       }
 
-      .scroll-list {
-        max-height: 22vh;
+      #searchResults,
+      #dialogsList {
+        max-height: 18vh;
       }
 
-      .message {
-        max-width: 85%;
-      }
-
-      .theme-toggle {
-        width: 40px;
-        height: 40px;
-        top: 12px;
-        right: 12px;
-        font-size: 20px;
-      }
-
-      .auth-container {
-        padding: 24px 20px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .panel-section {
-        padding: 10px 12px;
-      }
-
-      .user-item {
-        padding: 10px;
-      }
-
-      #chatHeader {
-        padding: 12px 14px;
-      }
-
-      #composer {
-        padding: 10px 12px;
-        gap: 8px;
-      }
-
-      #sendBtn {
-        min-width: 80px;
-        font-size: 14px;
-      }
-
-      #messageInput {
-        font-size: 15px;
-        padding: 12px 14px;
-      }
-
-      .message-content {
-        padding: 8px 12px;
-      }
-
-      .message-text {
-        font-size: 14px;
-      }
-
-      .profile-login {
-        font-size: 1rem;
-      }
-    }
-
-    /* доп. удобство: кнопка enterkeyhint */
-    input, textarea {
-      touch-action: manipulation;
-    }
-
-    .empty {
-      text-align: center;
-      color: var(--text-secondary);
-      padding: 24px;
-      font-size: 14px;
+      .message { max-width: 90%; }
     }
   </style>
 </head>
 <body>
-  <button class="theme-toggle" id="themeToggle" title="Сменить тему">🌙</button>
+  <button class="theme-toggle" id="themeToggle" title="Переключить тему">🌙</button>
 
   <section id="authPage">
     <div class="auth-container">
-      <h1>✨ Мессенджер</h1>
+      <h1>💬 Мессенджер</h1>
       <div class="tabs">
         <button type="button" class="tab active" id="loginTab">Вход</button>
         <button type="button" class="tab" id="registerTab">Регистрация</button>
@@ -540,60 +377,63 @@
       <form id="authForm" autocomplete="off">
         <div class="field">
           <label for="usernameInput">Логин</label>
-          <input id="usernameInput" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_.-]+" placeholder="max_user" />
+          <input id="usernameInput" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_.\-]{3,24}" placeholder="Например: max_user" />
         </div>
+
         <div class="field">
           <label for="passwordInput">Пароль</label>
-          <input id="passwordInput" required type="password" minlength="6" maxlength="64" placeholder="от 6 символов" />
+          <input id="passwordInput" required type="password" minlength="6" maxlength="64" placeholder="Минимум 6 символов" />
         </div>
+
         <button id="authSubmit" type="submit">Войти</button>
       </form>
-      <div id="authStatus">Готов к общению.</div>
+
+      <div id="authStatus">Готово.</div>
     </div>
   </section>
 
   <section id="chatPage">
     <aside id="leftPanel">
       <div class="panel-section">
-        <div class="profile-login" id="meLogin">@username</div>
-        <div class="profile-sub">⚡ realtime & secure</div>
+        <div class="profile-login" id="meLogin">@unknown</div>
+        <div class="profile-sub">Realtime Database session active</div>
       </div>
 
       <div class="panel-section">
-        <div class="section-title">🔍 Поиск по логину</div>
-        <input id="searchInput" placeholder="Введите логин друга..." enterkeyhint="search" />
+        <div class="section-title">Поиск друзей по логину</div>
+        <input id="searchInput" placeholder="Введите логин..." />
       </div>
 
       <div class="panel-section">
-        <div class="section-title">📋 Результаты</div>
-        <div id="searchResults" class="scroll-list"></div>
+        <div class="section-title">Результаты</div>
+        <div id="searchResults"></div>
       </div>
 
       <div class="panel-section" style="flex:1; min-height: 0; display:flex; flex-direction: column;">
-        <div class="section-title">💬 Диалоги</div>
-        <div id="dialogsList" class="scroll-list" style="flex:1;"></div>
+        <div class="section-title">Диалоги</div>
+        <div id="dialogsList" style="flex:1;"></div>
       </div>
 
       <div class="panel-section">
-        <button class="logout" id="logoutBtn" type="button">🚪 Выйти</button>
+        <button class="logout" id="logoutBtn" type="button">Выйти</button>
       </div>
     </aside>
 
     <main id="chatArea">
       <header id="chatHeader">
         <div>
-          <div id="chatTitle">Выберите собеседника</div>
+          <div id="chatTitle">Выберите друга для диалога</div>
           <div id="presence">Статус: —</div>
         </div>
-        <div id="chatCode" style="font-size:11px; opacity:0.7;">💎</div>
+        <div id="chatCode" style="font-size:12px; opacity:.9;">chat: ---</div>
       </header>
 
-      <div id="messages" class="scrollable">
-        <div class="empty">✨ Найдите друга, нажмите на него — начните переписку в реальном времени.</div>
+      <div id="messages">
+        <div class="empty">Найдите друга по логину слева, откройте диалог и начните переписку в реальном времени.</div>
       </div>
 
       <form id="composer">
-        <input id="messageInput" maxlength="1500" placeholder="Сообщение..." enterkeyhint="send" autocomplete="off" />
+        <input id="messageInput" maxlength="1500" placeholder="Напишите сообщение..." />
         <button id="sendBtn" type="submit">Отправить</button>
       </form>
     </main>
@@ -634,8 +474,8 @@
     const db = getDatabase(app);
     analyticsSupported().then((ok) => { if (ok) getAnalytics(app); }).catch(() => {});
 
-    const LS_THEME = "messenger_theme_v5";
-    const LS_SESSION = "messenger_session_v5";
+    const LS_THEME = "messenger_theme_v4";
+    const LS_SESSION = "messenger_session_v4";
 
     const $ = (id) => document.getElementById(id);
 
@@ -646,10 +486,14 @@
     let dialogsUnsub = null;
     let messagesUnsub = null;
     let presenceUnsub = null;
-    let userScrolledUp = false;  // для умного автоскролла
 
     function esc(v) {
-      return String(v).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+      return String(v)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
     }
 
     function setStatus(text, isError = false) {
@@ -682,17 +526,6 @@
       return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
     }
 
-    // УМНЫЙ СКРОЛЛ: прокручиваем вниз только если пользователь был внизу
-    function scrollMessagesIfNeeded() {
-      const messagesDiv = $("messages");
-      if (!messagesDiv) return;
-      const isNearBottom = messagesDiv.scrollHeight - messagesDiv.scrollTop - messagesDiv.clientHeight < 100;
-      if (isNearBottom || !userScrolledUp) {
-        messagesDiv.scrollTo({ top: messagesDiv.scrollHeight, behavior: "smooth" });
-        userScrolledUp = false;
-      }
-    }
-
     function setTheme(theme) {
       document.documentElement.setAttribute("data-theme", theme);
       $("themeToggle").textContent = theme === "light" ? "🌙" : "☀️";
@@ -703,17 +536,19 @@
       mode = nextMode;
       $("loginTab").classList.toggle("active", mode === "login");
       $("registerTab").classList.toggle("active", mode === "register");
-      $("authSubmit").textContent = mode === "login" ? "Войти" : "Создать аккаунт";
-      setStatus(mode === "login" ? "Введите данные" : "Придумайте логин и пароль");
+      $("authSubmit").textContent = mode === "login" ? "Войти" : "Зарегистрироваться";
+      setStatus(mode === "login" ? "Режим входа." : "Режим регистрации.", false);
     }
 
     function renderSearch(users) {
       const root = $("searchResults");
       root.innerHTML = "";
+
       if (!users.length) {
-        root.innerHTML = '<div class="user-item"><div class="user-sub">🔍 Ничего не найдено</div></div>';
+        root.innerHTML = '<div class="user-item"><div class="user-sub">Ничего не найдено</div></div>';
         return;
       }
+
       users.forEach((u) => {
         const btn = document.createElement("button");
         btn.type = "button";
@@ -727,15 +562,20 @@
     function renderDialogs(dialogs) {
       const root = $("dialogsList");
       root.innerHTML = "";
+
       if (!dialogs.length) {
-        root.innerHTML = '<div class="user-item"><div class="user-sub">📭 Нет диалогов, найдите друга</div></div>';
+        root.innerHTML = '<div class="user-item"><div class="user-sub">Пока нет диалогов</div></div>';
         return;
       }
+
       dialogs.forEach((d) => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = `user-item ${activePeer === d.peer ? "active" : ""}`;
-        btn.innerHTML = `<div class="user-main">@${esc(d.peer)}</div><div class="user-sub">${esc(d.lastMessage?.slice(0, 50) || "Новое сообщение")} · ${formatTime(d.lastAt)}</div>`;
+        btn.innerHTML = `
+          <div class="user-main">@${esc(d.peer)}</div>
+          <div class="user-sub">${esc(d.lastMessage || "Пусто")} · ${formatTime(d.lastAt)}</div>
+        `;
         btn.addEventListener("click", () => openDialog(d.peer));
         root.appendChild(btn);
       });
@@ -743,13 +583,13 @@
 
     function renderMessages(items) {
       const root = $("messages");
-      if (!root) return;
-      const wasAtBottom = root.scrollHeight - root.scrollTop - root.clientHeight < 80;
       root.innerHTML = "";
+
       if (!items.length) {
-        root.innerHTML = '<div class="empty">💬 Напишите первое сообщение!</div>';
+        root.innerHTML = '<div class="empty">Диалог создан. Отправьте первое сообщение.</div>';
         return;
       }
+
       items.forEach((m) => {
         const own = m.fromKey === me.usernameKey;
         const el = document.createElement("div");
@@ -757,7 +597,7 @@
         el.innerHTML = `
           <div class="message-content">
             <div class="message-header">
-              <span>${own ? "Вы" : "@" + esc(m.from)}</span>
+              <span>@${esc(m.from)}</span>
               <span class="message-time">${formatTime(m.createdAt)}</span>
             </div>
             <div class="message-text">${esc(m.text)}</div>
@@ -765,18 +605,16 @@
         `;
         root.appendChild(el);
       });
-      // Умная прокрутка: если пользователь был внизу или только что открыт диалог
-      if (wasAtBottom || !userScrolledUp) {
-        root.scrollTo({ top: root.scrollHeight, behavior: "smooth" });
-        userScrolledUp = false;
-      }
+
+      root.scrollTop = root.scrollHeight;
     }
 
     async function register(login, password) {
       const usernameKey = toKey(login);
       const userRef = ref(db, `users/${usernameKey}`);
       const existsSnap = await get(userRef);
-      if (existsSnap.exists()) throw new Error("Логин уже используется.");
+      if (existsSnap.exists()) throw new Error("Такой логин уже занят.");
+
       const passHash = await hashPassword(password);
       await set(userRef, {
         username: login,
@@ -785,6 +623,7 @@
         createdAt: Date.now(),
         lastSeen: Date.now()
       });
+
       return { username: login, usernameKey };
     }
 
@@ -792,9 +631,11 @@
       const usernameKey = toKey(loginValue);
       const userSnap = await get(ref(db, `users/${usernameKey}`));
       if (!userSnap.exists()) throw new Error("Пользователь не найден.");
+
       const user = userSnap.val();
       const passHash = await hashPassword(password);
       if (user.passHash !== passHash) throw new Error("Неверный пароль.");
+
       await update(ref(db, `users/${usernameKey}`), { lastSeen: Date.now() });
       return { username: user.username, usernameKey };
     }
@@ -802,26 +643,32 @@
     async function beginSession(user) {
       me = user;
       localStorage.setItem(LS_SESSION, JSON.stringify(user));
+
       $("meLogin").textContent = `@${me.username}`;
       $("authPage").style.display = "none";
       $("chatPage").style.display = "flex";
+
       await setOnlinePresence();
       watchDialogs();
-      // Сброс активного диалога
-      activePeer = null;
-      activeChatId = null;
-      $("chatTitle").textContent = "Выберите собеседника";
-      $("presence").textContent = "Статус: —";
     }
 
     async function setOnlinePresence() {
       const pRef = ref(db, `presence/${me.usernameKey}`);
-      await set(pRef, { username: me.username, online: true, lastSeen: serverTimestamp() });
-      onDisconnect(pRef).update({ online: false, lastSeen: serverTimestamp() });
+      await set(pRef, {
+        username: me.username,
+        online: true,
+        lastSeen: serverTimestamp()
+      });
+
+      onDisconnect(pRef).update({
+        online: false,
+        lastSeen: serverTimestamp()
+      });
     }
 
     function watchDialogs() {
       if (dialogsUnsub) dialogsUnsub();
+
       dialogsUnsub = onValue(ref(db, `userChats/${me.usernameKey}`), (snap) => {
         const rows = Object.values(snap.val() || {}).sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
         renderDialogs(rows);
@@ -830,6 +677,7 @@
 
     function watchMessages() {
       if (messagesUnsub) messagesUnsub();
+
       const q = query(ref(db, `chats/${activeChatId}/messages`), limitToLast(200));
       messagesUnsub = onValue(q, (snap) => {
         const rows = Object.values(snap.val() || {}).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
@@ -839,30 +687,30 @@
 
     function watchPresence() {
       if (presenceUnsub) presenceUnsub();
+
       presenceUnsub = onValue(ref(db, `presence/${toKey(activePeer)}`), (snap) => {
         const online = Boolean(snap.val()?.online);
-        $("presence").textContent = `Статус: ${online ? "🟢 онлайн" : "⚫ оффлайн"}`;
+        $("presence").textContent = `Статус: ${online ? "онлайн" : "оффлайн"}`;
       });
     }
 
     function openDialog(peerLogin) {
-      if (!me) return;
       activePeer = peerLogin;
       activeChatId = chatIdByUsers(me.username, activePeer);
-      $("chatTitle").textContent = `💬 Диалог с @${activePeer}`;
-      $("chatCode").textContent = `id: ${activeChatId.slice(-8)}`;
+
+      $("chatTitle").textContent = `Диалог с @${activePeer}`;
+      $("chatCode").textContent = `chat: ${activeChatId}`;
+
       watchPresence();
       watchMessages();
       watchDialogs();
-      // сброс флага скролла при открытии
-      userScrolledUp = false;
-      setTimeout(() => scrollMessagesIfNeeded(), 100);
     }
 
     async function sendMessage(text) {
-      if (!activePeer || !activeChatId || !me) return;
+      if (!activePeer || !activeChatId) return;
       const clean = text.trim();
       if (!clean) return;
+
       const now = Date.now();
       const payload = {
         from: me.username,
@@ -871,9 +719,23 @@
         text: clean,
         createdAt: now
       };
+
       await push(ref(db, `chats/${activeChatId}/messages`), payload);
-      const myDialog = { peer: activePeer, chatId: activeChatId, lastMessage: clean.slice(0, 120), lastAt: now };
-      const peerDialog = { peer: me.username, chatId: activeChatId, lastMessage: clean.slice(0, 120), lastAt: now };
+
+      const myDialog = {
+        peer: activePeer,
+        chatId: activeChatId,
+        lastMessage: clean.slice(0, 120),
+        lastAt: now
+      };
+
+      const peerDialog = {
+        peer: me.username,
+        chatId: activeChatId,
+        lastMessage: clean.slice(0, 120),
+        lastAt: now
+      };
+
       await update(ref(db), {
         [`userChats/${me.usernameKey}/${activeChatId}`]: myDialog,
         [`userChats/${toKey(activePeer)}/${activeChatId}`]: peerDialog,
@@ -883,85 +745,166 @@
 
     async function searchUsers(prefix) {
       const term = toKey(prefix);
-      if (term.length < 2) { renderSearch([]); return; }
-      try {
-        const q = query(ref(db, "users"), orderByChild("usernameKey"), startAt(term), endAt(`${term}\uf8ff`));
-        const snap = await get(q);
-        const rows = Object.values(snap.val() || {}).filter((u) => u.usernameKey !== me?.usernameKey).slice(0, 30).map((u) => ({ username: u.username }));
-        renderSearch(rows);
-      } catch (err) {
-        console.warn(err);
+      if (term.length < 2) {
         renderSearch([]);
-        $("searchResults").innerHTML = '<div class="user-item"><div class="user-sub">⚠️ Ошибка поиска, проверьте соединение</div></div>';
+        return;
+      }
+
+      const mapRows = (raw) => Object.values(raw || {})
+        .filter((u) => u.usernameKey !== me.usernameKey)
+        .filter((u) => String(u.usernameKey || "").startsWith(term))
+        .slice(0, 30)
+        .map((u) => ({ username: u.username }));
+
+      try {
+        const q = query(
+          ref(db, "users"),
+          orderByChild("usernameKey"),
+          startAt(term),
+          endAt(`${term}\uf8ff`)
+        );
+
+        const snap = await get(q);
+        renderSearch(mapRows(snap.val()));
+      } catch (err) {
+        const message = String(err?.message || "");
+        const needsIndex = message.includes("Index not defined") || message.includes(".indexOn");
+
+        if (needsIndex) {
+          try {
+            const fullSnap = await get(ref(db, "users"));
+            renderSearch(mapRows(fullSnap.val()));
+            return;
+          } catch (fallbackErr) {
+            console.error("Search fallback error:", fallbackErr);
+          }
+        }
+
+        console.error("Search error:", err);
+        renderSearch([]);
+        $("searchResults").innerHTML = '<div class="user-item"><div class="user-sub">Ошибка поиска. Проверьте rules/index в Firebase.</div></div>';
       }
     }
 
     async function logout() {
-      if (me?.usernameKey) await update(ref(db, `presence/${me.usernameKey}`), { online: false, lastSeen: serverTimestamp() });
+      if (me?.usernameKey) {
+        await update(ref(db, `presence/${me.usernameKey}`), {
+          online: false,
+          lastSeen: serverTimestamp()
+        });
+      }
+
       if (dialogsUnsub) dialogsUnsub();
       if (messagesUnsub) messagesUnsub();
       if (presenceUnsub) presenceUnsub();
-      dialogsUnsub = messagesUnsub = presenceUnsub = null;
-      me = null; activePeer = null; activeChatId = null;
+      dialogsUnsub = null;
+      messagesUnsub = null;
+      presenceUnsub = null;
+
+      me = null;
+      activePeer = null;
+      activeChatId = null;
       localStorage.removeItem(LS_SESSION);
+
       $("chatPage").style.display = "none";
       $("authPage").style.display = "flex";
-      $("messages").innerHTML = '<div class="empty">✨ Найдите друга и начните общение</div>';
+      $("chatTitle").textContent = "Выберите друга для диалога";
+      $("presence").textContent = "Статус: —";
+      $("chatCode").textContent = "chat: ---";
+      $("messages").innerHTML = '<div class="empty">Найдите друга по логину слева, откройте диалог и начните переписку в реальном времени.</div>';
       $("dialogsList").innerHTML = "";
       $("searchResults").innerHTML = "";
+      $("messageInput").value = "";
     }
 
     async function restoreSession() {
       const raw = localStorage.getItem(LS_SESSION);
       if (!raw) return;
+
       try {
         const session = JSON.parse(raw);
         if (!session?.usernameKey) return;
+
         const snap = await get(ref(db, `users/${session.usernameKey}`));
-        if (!snap.exists()) throw new Error();
-        await beginSession({ username: snap.val().username, usernameKey: session.usernameKey });
-      } catch { localStorage.removeItem(LS_SESSION); }
+        if (!snap.exists()) {
+          localStorage.removeItem(LS_SESSION);
+          return;
+        }
+
+        await beginSession({
+          username: snap.val().username,
+          usernameKey: session.usernameKey
+        });
+      } catch {
+        localStorage.removeItem(LS_SESSION);
+      }
     }
 
     function bindEvents() {
       $("loginTab").addEventListener("click", () => setAuthMode("login"));
       $("registerTab").addEventListener("click", () => setAuthMode("register"));
+
       $("themeToggle").addEventListener("click", () => {
-        const curr = document.documentElement.getAttribute("data-theme") || "dark";
-        setTheme(curr === "light" ? "dark" : "light");
+        const current = document.documentElement.getAttribute("data-theme") || "dark";
+        setTheme(current === "light" ? "dark" : "light");
       });
+
       $("authForm").addEventListener("submit", async (e) => {
         e.preventDefault();
+
         const loginValue = $("usernameInput").value.trim();
         const password = $("passwordInput").value;
-        if (!isValidLogin(loginValue)) return setStatus("Логин: 3-24 символа (буквы, цифры, _, ., -)", true);
-        if (password.length < 6) return setStatus("Пароль минимум 6 символов", true);
+
+        if (!isValidLogin(loginValue)) {
+          setStatus("Логин: 3-24 символа, только A-Z, 0-9, _, ., -", true);
+          return;
+        }
+
+        if (password.length < 6) {
+          setStatus("Пароль должен быть не короче 6 символов.", true);
+          return;
+        }
+
         try {
-          setStatus("⏳ Обработка...");
-          const user = mode === "login" ? await login(loginValue, password) : await register(loginValue, password);
-          setStatus("✅ Успешно!");
+          setStatus(mode === "login" ? "Выполняется вход..." : "Выполняется регистрация...");
+          const user = mode === "login"
+            ? await login(loginValue, password)
+            : await register(loginValue, password);
+
+          setStatus("Успешно.");
           await beginSession(user);
-        } catch (err) { setStatus(err.message, true); }
+        } catch (err) {
+          setStatus(err?.message || "Ошибка авторизации.", true);
+        }
       });
+
       let timer = null;
       $("searchInput").addEventListener("input", () => {
         clearTimeout(timer);
-        timer = setTimeout(() => { if (me) searchUsers($("searchInput").value).catch(()=>{}); }, 300);
+        const value = $("searchInput").value;
+        timer = setTimeout(() => {
+          if (!me) return;
+          searchUsers(value).catch(() => renderSearch([]));
+        }, 220);
       });
+
       $("composer").addEventListener("submit", async (e) => {
         e.preventDefault();
         if (!me || !activeChatId) return;
+
         const input = $("messageInput");
         const text = input.value;
-        if (!text.trim()) return;
         input.value = "";
-        await sendMessage(text);
-        scrollMessagesIfNeeded();
+
+        try {
+          await sendMessage(text);
+        } catch {
+          input.value = text;
+        }
       });
-      $("logoutBtn").addEventListener("click", () => logout());
-      $("messages").addEventListener("scroll", () => {
-        const msgs = $("messages");
-        userScrolledUp = msgs.scrollHeight - msgs.scrollTop - msgs.clientHeight > 120;
+
+      $("logoutBtn").addEventListener("click", () => {
+        logout().catch(() => {});
       });
     }
 
@@ -970,11 +913,12 @@
       setTheme(saved);
     }
 
-    async function init() {
+    function init() {
       initTheme();
       bindEvents();
-      await restoreSession();
+      restoreSession().catch(() => {});
     }
+
     init();
   </script>
 </body>
