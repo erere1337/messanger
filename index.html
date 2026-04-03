@@ -1,278 +1,401 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Firebase Messenger</title>
+  <title>Messenger Pro (Firebase)</title>
   <style>
     :root {
-      --bg: #0f1221;
-      --panel: rgba(255, 255, 255, 0.08);
-      --panel-strong: rgba(255, 255, 255, 0.14);
-      --text: #eef1ff;
-      --muted: #adb5d9;
-      --accent: #6c7dff;
-      --accent-2: #7dffd1;
-      --danger: #ff6b7a;
+      --bg-0: #0c1022;
+      --bg-1: #111833;
+      --bg-2: #171f3f;
+      --card: rgba(255, 255, 255, 0.09);
+      --card-strong: rgba(255, 255, 255, 0.14);
+      --text: #edf2ff;
+      --muted: #9aa8cf;
+      --accent: #6f7dff;
+      --accent-2: #00d3a9;
+      --danger: #ff6d8c;
       --border: rgba(255, 255, 255, 0.16);
-      --shadow: 0 12px 30px rgba(5, 10, 40, 0.35);
+      --shadow: 0 20px 42px rgba(4, 8, 28, 0.45);
+      --radius: 18px;
     }
 
     [data-theme="light"] {
-      --bg: #f1f4ff;
-      --panel: rgba(255, 255, 255, 0.84);
-      --panel-strong: rgba(255, 255, 255, 0.96);
-      --text: #1c2440;
-      --muted: #5f698e;
-      --accent: #3f51ff;
-      --accent-2: #00b88a;
-      --danger: #df3348;
-      --border: rgba(30, 45, 90, 0.14);
-      --shadow: 0 12px 26px rgba(32, 50, 120, 0.16);
+      --bg-0: #eff3ff;
+      --bg-1: #ffffff;
+      --bg-2: #f4f7ff;
+      --card: rgba(255, 255, 255, 0.86);
+      --card-strong: rgba(255, 255, 255, 0.98);
+      --text: #1e2848;
+      --muted: #667396;
+      --accent: #495cff;
+      --accent-2: #00b48e;
+      --danger: #e43c5d;
+      --border: rgba(32, 53, 110, 0.13);
+      --shadow: 0 16px 34px rgba(48, 73, 145, 0.14);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: Inter, Segoe UI, Roboto, sans-serif;
-      color: var(--text);
-      background: radial-gradient(circle at 10% 10%, #3347e5 0%, transparent 38%),
-                  radial-gradient(circle at 90% 0%, #1ab3b3 0%, transparent 30%),
-                  var(--bg);
       min-height: 100vh;
+      font-family: Inter, Segoe UI, Roboto, sans-serif;
+      background:
+        radial-gradient(circle at 8% 0%, #374ce9 0%, transparent 35%),
+        radial-gradient(circle at 92% 0%, #11c7c7 0%, transparent 30%),
+        linear-gradient(180deg, var(--bg-0), #0a0f1f 110%);
+      color: var(--text);
+      overflow: hidden;
     }
 
     .hidden { display: none !important; }
+    .muted { color: var(--muted); }
 
-    .theme-btn {
+    .top-actions {
       position: fixed;
-      right: 14px;
-      top: 14px;
-      border: 1px solid var(--border);
-      background: var(--panel-strong);
-      color: var(--text);
-      border-radius: 999px;
-      width: 40px;
-      height: 40px;
-      cursor: pointer;
-      z-index: 10;
-      box-shadow: var(--shadow);
+      top: 12px;
+      right: 12px;
+      z-index: 20;
+      display: flex;
+      gap: 8px;
     }
 
-    .center-wrap {
+    .icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--card-strong);
+      color: var(--text);
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
+
+    .center {
       min-height: 100vh;
       display: grid;
       place-items: center;
-      padding: 24px;
+      padding: 20px;
     }
 
     .card {
-      width: 100%;
-      max-width: 460px;
-      background: var(--panel);
-      backdrop-filter: blur(16px);
+      width: min(480px, 96vw);
+      background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 22px;
+      border-radius: 24px;
       box-shadow: var(--shadow);
-      padding: 26px;
+      backdrop-filter: blur(14px);
+      padding: 22px;
     }
 
-    h1 {
-      margin-bottom: 8px;
+    .title {
       font-size: 28px;
+      margin-bottom: 6px;
+      font-weight: 800;
+      letter-spacing: 0.2px;
     }
 
-    .sub { color: var(--muted); margin-bottom: 20px; }
+    .tabs { display: flex; gap: 8px; margin-top: 16px; }
 
-    .tabs {
-      display: flex;
-      gap: 8px;
-      margin-bottom: 14px;
-    }
-
-    .tab {
-      flex: 1;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      background: transparent;
-      color: var(--text);
-      padding: 10px;
-      cursor: pointer;
-    }
-
-    .tab.active { background: var(--panel-strong); border-color: transparent; }
-
-    input, button {
-      width: 100%;
-      border: 1px solid var(--border);
-      background: var(--panel-strong);
-      color: var(--text);
+    .tabs button,
+    .btn,
+    input,
+    textarea {
       border-radius: 12px;
-      padding: 12px 14px;
-      font-size: 15px;
-      margin-top: 10px;
-    }
-
-    button.primary {
-      background: linear-gradient(135deg, var(--accent), #8f63ff);
-      border-color: transparent;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    button.secondary {
-      background: linear-gradient(135deg, #15be8a, var(--accent-2));
-      color: #07191a;
-      border: none;
-      font-weight: 700;
-      cursor: pointer;
-    }
-
-    .status {
-      margin-top: 10px;
-      min-height: 24px;
-      color: var(--muted);
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: var(--card-strong);
+      width: 100%;
+      padding: 12px 13px;
       font-size: 14px;
     }
 
-    .chat-shell {
+    textarea { min-height: 120px; resize: vertical; }
+
+    .tabs button {
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .tabs button.active {
+      background: linear-gradient(135deg, var(--accent), #8c61ff);
+      border-color: transparent;
+      color: #fff;
+    }
+
+    .btn { cursor: pointer; font-weight: 600; }
+    .btn.primary { background: linear-gradient(135deg, var(--accent), #8c61ff); border-color: transparent; color: #fff; }
+    .btn.success { background: linear-gradient(135deg, #0dbd8d, var(--accent-2)); border-color: transparent; color: #05231c; }
+    .btn.ghost { background: transparent; }
+    .btn.danger { background: rgba(255, 70, 110, 0.2); border-color: rgba(255, 100, 130, 0.38); }
+
+    .field-group { display: grid; gap: 8px; margin-top: 12px; }
+    .status { min-height: 22px; font-size: 13px; margin-top: 10px; color: var(--muted); }
+    .status.error { color: #ff9ab1; }
+
+    .app {
       height: 100vh;
       display: grid;
-      grid-template-columns: 320px 1fr;
+      grid-template-columns: 330px 1fr;
       gap: 12px;
       padding: 12px;
     }
 
     .panel {
-      background: var(--panel);
+      background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 18px;
+      border-radius: var(--radius);
       box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
-      overflow: hidden;
+      backdrop-filter: blur(12px);
       display: flex;
       flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
     }
 
-    .panel-head { padding: 14px; border-bottom: 1px solid var(--border); }
-    .panel-head h2 { font-size: 18px; }
-    .small { font-size: 12px; color: var(--muted); margin-top: 4px; }
-
-    .list { overflow: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
-
-    .item {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 12px;
-      background: var(--panel-strong);
-      cursor: pointer;
-    }
-
-    .item.active { outline: 2px solid var(--accent); }
-    .item-title { font-weight: 600; }
-    .item-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
-
-    .chat-main {
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      height: 100%;
-    }
-
-    .chat-head {
+    .panel-head {
       padding: 14px;
       border-bottom: 1px solid var(--border);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .messages {
-      overflow: auto;
-      padding: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .bubble {
-      max-width: 72%;
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      background: var(--panel-strong);
-      align-self: flex-start;
-    }
-
-    .bubble.me {
-      align-self: flex-end;
-      background: linear-gradient(135deg, var(--accent), #8f63ff);
-      border: none;
-      color: #fff;
-    }
-
-    .meta { font-size: 11px; opacity: 0.8; margin-top: 4px; }
-
-    .composer {
-      border-top: 1px solid var(--border);
-      padding: 12px;
       display: grid;
-      grid-template-columns: 1fr 120px;
       gap: 8px;
     }
 
-    @media (max-width: 900px) {
-      .chat-shell { grid-template-columns: 1fr; }
-      .left-col { height: 40vh; }
+    .profile-row { display: flex; align-items: center; gap: 10px; }
+
+    .avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(145deg, var(--accent), #b24dff);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      color: #fff;
+      user-select: none;
+    }
+
+    .profile-meta { min-width: 0; }
+    .profile-meta .name { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .profile-meta .sub { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .list {
+      overflow: auto;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-height: 0;
+    }
+
+    .item {
+      border: 1px solid var(--border);
+      background: var(--card-strong);
+      border-radius: 12px;
+      padding: 10px;
+      cursor: pointer;
+      transition: 0.16s ease;
+    }
+
+    .item:hover { transform: translateY(-1px); }
+    .item.active { outline: 2px solid var(--accent); }
+
+    .item .line1 {
+      display: flex;
+      justify-content: space-between;
+      gap: 6px;
+      font-weight: 700;
+    }
+
+    .item .line2 {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .main {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-height: 0;
+    }
+
+    .chat-head {
+      border-bottom: 1px solid var(--border);
+      padding: 13px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chat-head .left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+    .presence {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      display: inline-block;
+      background: #8893ba;
+      margin-right: 6px;
+    }
+
+    .presence.online { background: #00d47a; box-shadow: 0 0 0 3px rgba(0, 212, 122, 0.2); }
+
+    .messages {
+      padding: 14px;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      min-height: 0;
+    }
+
+    .empty-chat {
+      margin: auto;
+      text-align: center;
+      color: var(--muted);
+      max-width: 380px;
+      line-height: 1.5;
+      padding: 20px;
+    }
+
+    .msg {
+      max-width: 76%;
+      background: var(--card-strong);
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      padding: 10px 12px;
+      align-self: flex-start;
+      word-break: break-word;
+    }
+
+    .msg.me {
+      align-self: flex-end;
+      background: linear-gradient(145deg, var(--accent), #905cff);
+      color: #fff;
+      border: none;
+    }
+
+    .msg .meta {
+      margin-top: 4px;
+      font-size: 11px;
+      opacity: 0.85;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .composer {
+      border-top: 1px solid var(--border);
+      display: grid;
+      grid-template-columns: 1fr 50px 130px;
+      gap: 8px;
+      padding: 12px;
+    }
+
+    .emoji-btn { font-size: 19px; }
+
+    .footer-tip {
+      padding: 8px 12px;
+      border-top: 1px dashed var(--border);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 980px) {
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: 42vh 1fr;
+      }
     }
   </style>
 </head>
 <body>
-  <button id="themeBtn" class="theme-btn" title="Тема">🌙</button>
+  <div class="top-actions">
+    <button id="themeBtn" class="icon-btn" title="Переключить тему">🌙</button>
+    <button id="resetCfgBtn" class="icon-btn" title="Сбросить Firebase-конфиг">⚙️</button>
+  </div>
 
-  <section id="authView" class="center-wrap">
+  <section id="setupView" class="center hidden">
     <div class="card">
-      <h1>💬 Firebase Messenger</h1>
-      <p class="sub">Регистрация, вход, поиск по логину и личные чаты.</p>
+      <div class="title">🔐 Настройка Firebase</div>
+      <p class="muted">API-ключи не хранятся в репозитории: вставьте JSON конфиг локально, он сохранится только в вашем браузере.</p>
+      <div class="field-group">
+        <textarea id="firebaseConfigInput" placeholder='{"apiKey":"...","authDomain":"...","projectId":"..."}'></textarea>
+        <button id="saveConfigBtn" class="btn success" type="button">Сохранить конфиг</button>
+      </div>
+      <div id="setupStatus" class="status"></div>
+    </div>
+  </section>
+
+  <section id="authView" class="center hidden">
+    <div class="card">
+      <div class="title">💬 Messenger Pro</div>
+      <p class="muted">Максимально близко к реальному мессенджеру: профиль, поиск, диалоги, online-статус, realtime-сообщения.</p>
 
       <div class="tabs">
-        <button id="tabLogin" class="tab active" type="button">Вход</button>
-        <button id="tabReg" class="tab" type="button">Регистрация</button>
+        <button id="loginTab" class="active" type="button">Вход</button>
+        <button id="registerTab" type="button">Регистрация</button>
       </div>
 
-      <form id="authForm">
-        <input id="email" type="email" placeholder="Email" required />
-        <input id="password" type="password" minlength="6" placeholder="Пароль (от 6 символов)" required />
-        <input id="username" class="hidden" type="text" minlength="3" maxlength="24" placeholder="Логин (a-z, 0-9, _, .)" />
-        <button id="authSubmit" class="primary" type="submit">Войти</button>
+      <form id="authForm" class="field-group">
+        <input id="emailInput" type="email" required placeholder="Email" />
+        <input id="passwordInput" type="password" minlength="6" required placeholder="Пароль (6+ символов)" />
+        <input id="usernameInput" class="hidden" type="text" minlength="3" maxlength="24" placeholder="Логин: a-z, 0-9, _, ." />
+        <button id="authSubmit" class="btn primary" type="submit">Войти</button>
       </form>
       <div id="authStatus" class="status"></div>
     </div>
   </section>
 
-  <section id="chatView" class="chat-shell hidden">
-    <aside class="panel left-col">
+  <section id="appView" class="app hidden">
+    <aside class="panel">
       <div class="panel-head">
-        <h2 id="meTitle">Профиль</h2>
-        <div class="small">Ищите пользователей по логину и начинайте диалог.</div>
-        <input id="searchInput" type="text" placeholder="Поиск по логину" />
-        <button id="logoutBtn" style="margin-top:10px;" type="button">Выйти</button>
+        <div class="profile-row">
+          <div id="meAvatar" class="avatar">U</div>
+          <div class="profile-meta">
+            <div id="meName" class="name">@username</div>
+            <div id="meEmail" class="sub">email@example.com</div>
+          </div>
+        </div>
+        <input id="searchInput" type="text" placeholder="Поиск людей по логину (@alex...)" />
       </div>
-      <div class="list" id="searchResults"></div>
-      <div class="panel-head"><h2>Мои диалоги</h2></div>
-      <div class="list" id="chatList"></div>
+
+      <div class="footer-tip">Результаты поиска</div>
+      <div id="searchList" class="list"></div>
+
+      <div class="footer-tip">Ваши диалоги</div>
+      <div id="dialogsList" class="list"></div>
+
+      <div class="panel-head">
+        <button id="logoutBtn" class="btn danger" type="button">Выйти из аккаунта</button>
+      </div>
     </aside>
 
-    <main class="panel chat-main">
-      <div class="chat-head">
-        <div>
-          <div id="chatTitle">Выберите чат</div>
-          <div id="chatSubtitle" class="small">—</div>
+    <main class="panel main">
+      <header class="chat-head">
+        <div class="left">
+          <div id="chatAvatar" class="avatar">?</div>
+          <div style="min-width:0;">
+            <div id="chatTitle" class="name">Выберите диалог</div>
+            <div id="chatSubtitle" class="sub"><span id="presenceDot" class="presence"></span><span id="presenceText">—</span></div>
+          </div>
         </div>
+        <button id="newChatHintBtn" class="btn ghost" style="max-width:180px;" type="button">Как начать чат?</button>
+      </header>
+
+      <div id="messages" class="messages">
+        <div class="empty-chat">Найдите пользователя слева по логину и нажмите на него, чтобы создать личный чат.</div>
       </div>
-      <div id="messages" class="messages"></div>
+
       <form id="composer" class="composer">
-        <input id="messageInput" type="text" maxlength="1200" placeholder="Введите сообщение..." />
-        <button class="secondary" type="submit">Отправить</button>
+        <input id="messageInput" type="text" maxlength="2000" placeholder="Введите сообщение..." />
+        <button id="emojiBtn" class="btn emoji-btn" type="button">😊</button>
+        <button class="btn success" type="submit">Отправить</button>
       </form>
     </main>
   </section>
@@ -283,163 +406,227 @@
     import {
       getAuth,
       onAuthStateChanged,
-      createUserWithEmailAndPassword,
+      signOut,
       signInWithEmailAndPassword,
-      signOut
+      createUserWithEmailAndPassword
     } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
     import {
       getFirestore,
       doc,
-      setDoc,
       getDoc,
+      setDoc,
       updateDoc,
       serverTimestamp,
       collection,
-      addDoc,
       query,
       where,
       orderBy,
       limit,
       onSnapshot,
-      getDocs
+      getDocs,
+      addDoc
     } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyBalx-yReG31BkexcSYkX6CknHh_m_St2M",
-      authDomain: "messanger-b98dd.firebaseapp.com",
-      projectId: "messanger-b98dd",
-      storageBucket: "messanger-b98dd.firebasestorage.app",
-      messagingSenderId: "389022023604",
-      appId: "1:389022023604:web:5e89db01e9b9fa1aa8bce1",
-      measurementId: "G-VRV1YXQRP2"
-    };
+    const LS_CFG = "messenger_firebase_config_v2";
+    const LS_THEME = "messenger_theme_v2";
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = getFirestore(app);
+    const $ = (id) => document.getElementById(id);
 
-    analyticsSupported().then((ok) => {
-      if (ok) getAnalytics(app);
-    });
+    const setupView = $("setupView");
+    const authView = $("authView");
+    const appView = $("appView");
+
+    let app = null;
+    let db = null;
+    let auth = null;
 
     let mode = "login";
     let me = null;
     let meProfile = null;
+
     let activeChatId = null;
-    let unsubMessages = null;
+    let activeOtherUser = null;
 
-    const $ = (id) => document.getElementById(id);
-    const authView = $("authView");
-    const chatView = $("chatView");
-    const authForm = $("authForm");
-    const authStatus = $("authStatus");
+    let unsubMsgs = null;
+    let unsubDialogs = null;
+    let unsubPresence = null;
 
-    function setStatus(text, isError = false) {
-      authStatus.textContent = text;
-      authStatus.style.color = isError ? "#ff9ca8" : "var(--muted)";
+    function setStatus(el, text, error = false) {
+      el.textContent = text;
+      el.classList.toggle("error", error);
+    }
+
+    function initials(value) {
+      const clean = (value || "?").replace(/[^a-zA-Zа-яА-Я0-9]/g, "").slice(0, 2).toUpperCase();
+      return clean || "?";
     }
 
     function normalizeUsername(value) {
       return value.trim().toLowerCase();
     }
 
-    function validUsername(value) {
-      return /^[a-z0-9_.]{3,24}$/.test(value);
+    function validUsername(u) {
+      return /^[a-z0-9_.]{3,24}$/.test(u);
     }
 
-    function chatIdFor(uid1, uid2) {
-      return [uid1, uid2].sort().join("_");
+    function chatId(uid1, uid2) {
+      return [uid1, uid2].sort().join("__");
     }
 
-    function applyTheme(initial = false) {
-      const stored = localStorage.getItem("theme") || "dark";
-      document.documentElement.setAttribute("data-theme", stored);
-      $("themeBtn").textContent = stored === "light" ? "🌙" : "☀️";
-      if (!initial) localStorage.setItem("theme", stored);
+    function applyTheme() {
+      const t = localStorage.getItem(LS_THEME) || "dark";
+      document.documentElement.setAttribute("data-theme", t);
+      $("themeBtn").textContent = t === "light" ? "🌙" : "☀️";
     }
 
     function toggleTheme() {
       const now = document.documentElement.getAttribute("data-theme") || "dark";
-      const next = now === "light" ? "dark" : "light";
-      localStorage.setItem("theme", next);
+      localStorage.setItem(LS_THEME, now === "dark" ? "light" : "dark");
       applyTheme();
     }
 
-    function switchMode(next) {
+    function switchAuthMode(next) {
       mode = next;
       const reg = next === "register";
-      $("tabLogin").classList.toggle("active", !reg);
-      $("tabReg").classList.toggle("active", reg);
-      $("username").classList.toggle("hidden", !reg);
-      $("username").required = reg;
+      $("loginTab").classList.toggle("active", !reg);
+      $("registerTab").classList.toggle("active", reg);
+      $("usernameInput").classList.toggle("hidden", !reg);
+      $("usernameInput").required = reg;
       $("authSubmit").textContent = reg ? "Создать аккаунт" : "Войти";
-      setStatus("");
+      setStatus($("authStatus"), "");
+    }
+
+    function route(view) {
+      setupView.classList.add("hidden");
+      authView.classList.add("hidden");
+      appView.classList.add("hidden");
+      view.classList.remove("hidden");
+    }
+
+    function parseConfig(raw) {
+      const cfg = JSON.parse(raw);
+      const required = ["apiKey", "authDomain", "projectId", "appId"];
+      const missing = required.filter((k) => !cfg[k]);
+      if (missing.length) throw new Error(`В конфиге не хватает полей: ${missing.join(", ")}`);
+      return cfg;
+    }
+
+    function loadStoredConfig() {
+      const raw = localStorage.getItem(LS_CFG);
+      if (!raw) return null;
+      return parseConfig(raw);
+    }
+
+    async function initFirebaseWithConfig(cfg) {
+      app = initializeApp(cfg);
+      auth = getAuth(app);
+      db = getFirestore(app);
+      analyticsSupported().then((ok) => { if (ok) getAnalytics(app); });
     }
 
     async function ensureProfile(user, username) {
-      const normalized = normalizeUsername(username);
-      const profileRef = doc(db, "users", user.uid);
-      const usernameRef = doc(db, "usernames", normalized);
-      const unameSnap = await getDoc(usernameRef);
+      const uname = normalizeUsername(username);
+      const unameRef = doc(db, "usernames", uname);
+      const check = await getDoc(unameRef);
+      if (check.exists() && check.data().uid !== user.uid) throw new Error("Этот логин уже занят.");
 
-      if (unameSnap.exists() && unameSnap.data().uid !== user.uid) {
-        throw new Error("Этот логин уже занят.");
-      }
-
-      await setDoc(usernameRef, { uid: user.uid, username: normalized });
-      await setDoc(profileRef, {
+      await setDoc(unameRef, { uid: user.uid, username: uname }, { merge: true });
+      await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
-        email: user.email,
-        username: normalized,
-        usernameSearch: normalized,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        username: uname,
+        usernameSearch: uname,
+        email: user.email || "",
+        online: true,
+        lastSeen: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        createdAt: serverTimestamp()
       }, { merge: true });
     }
 
-    async function loadMyProfile(uid) {
+    async function loadProfile(uid) {
       const snap = await getDoc(doc(db, "users", uid));
-      if (!snap.exists()) throw new Error("Профиль не найден.");
+      if (!snap.exists()) throw new Error("Профиль пользователя не найден.");
       meProfile = snap.data();
-      $("meTitle").textContent = `@${meProfile.username}`;
+      $("meName").textContent = `@${meProfile.username}`;
+      $("meEmail").textContent = meProfile.email || "Без email";
+      $("meAvatar").textContent = initials(meProfile.username);
     }
 
-    async function handleRegister(email, password, username) {
-      const normalized = normalizeUsername(username);
-      if (!validUsername(normalized)) {
-        throw new Error("Логин: только a-z, 0-9, _ и ., от 3 до 24 символов.");
+    async function setMyPresence(online) {
+      if (!me) return;
+      try {
+        await updateDoc(doc(db, "users", me.uid), {
+          online,
+          lastSeen: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+      } catch {
       }
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-      await ensureProfile(cred.user, normalized);
     }
 
-    async function handleLogin(email, password) {
+    function clearSubscriptions() {
+      if (unsubMsgs) { unsubMsgs(); unsubMsgs = null; }
+      if (unsubDialogs) { unsubDialogs(); unsubDialogs = null; }
+      if (unsubPresence) { unsubPresence(); unsubPresence = null; }
+    }
+
+    async function register(email, password, username) {
+      const uname = normalizeUsername(username);
+      if (!validUsername(uname)) throw new Error("Логин: a-z, 0-9, _, ., длина 3-24.");
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      await ensureProfile(cred.user, uname);
+    }
+
+    async function login(email, password) {
       await signInWithEmailAndPassword(auth, email, password);
     }
 
-    authForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const email = $("email").value.trim();
-      const password = $("password").value;
-      const username = $("username").value.trim();
-
-      try {
-        setStatus("Подождите...");
-        if (mode === "register") await handleRegister(email, password, username);
-        else await handleLogin(email, password);
-      } catch (err) {
-        setStatus(err.message || "Ошибка авторизации", true);
+    function renderSearch(items) {
+      const root = $("searchList");
+      root.innerHTML = "";
+      if (!items.length) {
+        root.innerHTML = `<div class="muted" style="padding:8px;">Введите минимум 2 символа для поиска.</div>`;
+        return;
       }
-    });
 
-    async function startOrOpenChat(other) {
-      const cid = chatIdFor(me.uid, other.uid);
-      const ref = doc(db, "chats", cid);
+      items.forEach((u) => {
+        const el = document.createElement("div");
+        el.className = "item";
+        el.innerHTML = `
+          <div class="line1"><span>@${u.username}</span><span class="muted">${u.online ? "online" : "offline"}</span></div>
+          <div class="line2">${u.email || "Без email"}</div>
+        `;
+        el.onclick = () => startDialog(u);
+        root.appendChild(el);
+      });
+    }
+
+    async function findUsers(prefix) {
+      const q = normalizeUsername(prefix);
+      if (q.length < 2) return renderSearch([]);
+      const end = q + "\uf8ff";
+      const qRef = query(
+        collection(db, "users"),
+        where("usernameSearch", ">=", q),
+        where("usernameSearch", "<=", end),
+        orderBy("usernameSearch"),
+        limit(20)
+      );
+      const snap = await getDocs(qRef);
+      const users = snap.docs
+        .map((d) => d.data())
+        .filter((u) => u.uid && u.uid !== me.uid);
+      renderSearch(users);
+    }
+
+    async function startDialog(other) {
+      const cid = chatId(me.uid, other.uid);
+      const ref = doc(db, "dialogs", cid);
       const snap = await getDoc(ref);
       const base = {
         id: cid,
         participants: [me.uid, other.uid],
-        participantUsernames: {
+        usernames: {
           [me.uid]: meProfile.username,
           [other.uid]: other.username
         },
@@ -450,162 +637,250 @@
       if (!snap.exists()) {
         await setDoc(ref, { ...base, createdAt: serverTimestamp() });
       } else {
-        await updateDoc(ref, { updatedAt: serverTimestamp() });
+        await updateDoc(ref, { updatedAt: serverTimestamp(), usernames: base.usernames });
       }
-      openChat(cid, other.username);
+      openDialog(cid, other);
     }
 
-    function renderMessages(docs) {
-      const wrap = $("messages");
-      wrap.innerHTML = "";
-      docs.forEach((d) => {
-        const m = d.data();
-        const div = document.createElement("div");
-        div.className = `bubble ${m.senderId === me.uid ? "me" : ""}`;
-        const dt = m.createdAt?.toDate ? m.createdAt.toDate().toLocaleString() : "сейчас";
-        div.innerHTML = `<div>${m.text}</div><div class="meta">${m.senderUsername} • ${dt}</div>`;
-        wrap.appendChild(div);
+    function attachPresenceListener(otherUid) {
+      if (unsubPresence) { unsubPresence(); unsubPresence = null; }
+      unsubPresence = onSnapshot(doc(db, "users", otherUid), (snap) => {
+        if (!snap.exists()) return;
+        const user = snap.data();
+        const online = !!user.online;
+        const dot = $("presenceDot");
+        dot.classList.toggle("online", online);
+
+        if (online) {
+          $("presenceText").textContent = "в сети";
+        } else {
+          const last = user.lastSeen?.toDate ? user.lastSeen.toDate().toLocaleString() : "давно";
+          $("presenceText").textContent = `был(а) ${last}`;
+        }
       });
-      wrap.scrollTop = wrap.scrollHeight;
     }
 
-    function openChat(chatId, username) {
-      activeChatId = chatId;
-      $("chatTitle").textContent = `Диалог с @${username}`;
-      $("chatSubtitle").textContent = `chatId: ${chatId}`;
-
-      if (unsubMessages) {
-        unsubMessages();
-        unsubMessages = null;
+    function renderDialogMessages(docs) {
+      const box = $("messages");
+      box.innerHTML = "";
+      if (!docs.length) {
+        box.innerHTML = `<div class="empty-chat">Пока нет сообщений. Напишите первым 👋</div>`;
+        return;
       }
+      docs.forEach((docSnap) => {
+        const m = docSnap.data();
+        const mine = m.senderId === me.uid;
+        const dt = m.createdAt?.toDate ? m.createdAt.toDate().toLocaleString() : "сейчас";
+        const el = document.createElement("div");
+        el.className = `msg ${mine ? "me" : ""}`;
+        el.innerHTML = `<div>${m.text}</div><div class="meta">${m.senderUsername} • ${dt}</div>`;
+        box.appendChild(el);
+      });
+      box.scrollTop = box.scrollHeight;
+    }
 
-      const mq = query(collection(db, "chats", chatId, "messages"), orderBy("createdAt", "asc"), limit(200));
-      unsubMessages = onSnapshot(mq, (snap) => renderMessages(snap.docs));
+    function openDialog(cid, other) {
+      activeChatId = cid;
+      activeOtherUser = other;
+
+      $("chatTitle").textContent = `@${other.username}`;
+      $("chatAvatar").textContent = initials(other.username);
+      attachPresenceListener(other.uid);
+
+      if (unsubMsgs) { unsubMsgs(); unsubMsgs = null; }
+      const mq = query(collection(db, "dialogs", cid, "messages"), orderBy("createdAt", "asc"), limit(300));
+      unsubMsgs = onSnapshot(mq, (snap) => renderDialogMessages(snap.docs));
+
+      [...$("dialogsList").children].forEach((el) => {
+        el.classList.toggle("active", el.dataset.id === cid);
+      });
     }
 
     async function sendMessage(text) {
       if (!activeChatId || !text.trim()) return;
-      const msg = {
+      const payload = {
         text: text.trim(),
         senderId: me.uid,
         senderUsername: meProfile.username,
         createdAt: serverTimestamp()
       };
-      await addDoc(collection(db, "chats", activeChatId, "messages"), msg);
-      await updateDoc(doc(db, "chats", activeChatId), {
-        lastMessageText: msg.text,
+      await addDoc(collection(db, "dialogs", activeChatId, "messages"), payload);
+      await updateDoc(doc(db, "dialogs", activeChatId), {
+        lastMessageText: payload.text,
         lastMessageAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
       $("messageInput").value = "";
     }
 
-    function renderSearchResults(items) {
-      const root = $("searchResults");
+    function renderDialogs(docs) {
+      const root = $("dialogsList");
       root.innerHTML = "";
-      if (!items.length) {
-        root.innerHTML = `<div class="small">Ничего не найдено</div>`;
+      if (!docs.length) {
+        root.innerHTML = `<div class="muted" style="padding:8px;">У вас пока нет диалогов.</div>`;
         return;
       }
-      items.forEach((u) => {
+      docs.forEach((ds) => {
+        const d = ds.data();
+        const otherUid = d.participants.find((id) => id !== me.uid);
+        const otherName = d.usernames?.[otherUid] || "unknown";
+        const time = d.lastMessageAt?.toDate ? d.lastMessageAt.toDate().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+
         const el = document.createElement("div");
-        el.className = "item";
-        el.innerHTML = `<div class="item-title">@${u.username}</div><div class="item-sub">${u.email || "Без email"}</div>`;
-        el.onclick = () => startOrOpenChat(u);
+        el.className = `item ${ds.id === activeChatId ? "active" : ""}`;
+        el.dataset.id = ds.id;
+        el.innerHTML = `
+          <div class="line1"><span>@${otherName}</span><span class="muted">${time}</span></div>
+          <div class="line2">${d.lastMessageText || "Без сообщений"}</div>
+        `;
+        el.onclick = () => openDialog(ds.id, { uid: otherUid, username: otherName });
         root.appendChild(el);
       });
     }
 
-    function subscribeChats() {
-      const cq = query(collection(db, "chats"), where("participants", "array-contains", me.uid), orderBy("lastMessageAt", "desc"), limit(50));
-      onSnapshot(cq, (snap) => {
-        const root = $("chatList");
-        root.innerHTML = "";
-        if (snap.empty) {
-          root.innerHTML = `<div class="small">Пока нет диалогов</div>`;
-          return;
+    function subscribeDialogs() {
+      if (unsubDialogs) { unsubDialogs(); unsubDialogs = null; }
+      const qRef = query(
+        collection(db, "dialogs"),
+        where("participants", "array-contains", me.uid),
+        orderBy("lastMessageAt", "desc"),
+        limit(50)
+      );
+      unsubDialogs = onSnapshot(qRef, (snap) => renderDialogs(snap.docs));
+    }
+
+    function setupAuthHandlers() {
+      $("loginTab").onclick = () => switchAuthMode("login");
+      $("registerTab").onclick = () => switchAuthMode("register");
+
+      $("authForm").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const email = $("emailInput").value.trim();
+        const password = $("passwordInput").value;
+        const username = $("usernameInput").value.trim();
+
+        try {
+          setStatus($("authStatus"), "Авторизация...");
+          if (mode === "register") await register(email, password, username);
+          else await login(email, password);
+        } catch (err) {
+          setStatus($("authStatus"), err.message || "Ошибка", true);
         }
-        snap.docs.forEach((d) => {
-          const c = d.data();
-          const otherUid = c.participants.find((id) => id !== me.uid);
-          const otherName = c.participantUsernames?.[otherUid] || "unknown";
-          const el = document.createElement("div");
-          el.className = `item ${d.id === activeChatId ? "active" : ""}`;
-          el.innerHTML = `<div class="item-title">@${otherName}</div><div class="item-sub">${c.lastMessageText || "Без сообщений"}</div>`;
-          el.onclick = () => openChat(d.id, otherName);
-          root.appendChild(el);
-        });
       });
     }
 
-    async function searchUsersByUsername(prefix) {
-      const qText = normalizeUsername(prefix);
-      if (qText.length < 2) {
-        renderSearchResults([]);
-        return;
-      }
-      const end = qText + "\uf8ff";
-      const uq = query(
-        collection(db, "users"),
-        where("usernameSearch", ">=", qText),
-        where("usernameSearch", "<=", end),
-        orderBy("usernameSearch"),
-        limit(20)
-      );
-      const snap = await getDocs(uq);
-      const users = snap.docs
-        .map((d) => d.data())
-        .filter((u) => u.uid !== me.uid);
-      renderSearchResults(users);
+    function setupMainHandlers() {
+      $("searchInput").addEventListener("input", (e) => {
+        findUsers(e.target.value).catch((err) => console.error(err));
+      });
+
+      $("composer").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        try {
+          await sendMessage($("messageInput").value);
+        } catch (err) {
+          console.error(err);
+        }
+      });
+
+      $("emojiBtn").onclick = () => {
+        const input = $("messageInput");
+        input.value += " 😊";
+        input.focus();
+      };
+
+      $("newChatHintBtn").onclick = () => {
+        alert("Введите логин пользователя слева (минимум 2 символа), затем нажмите на результат поиска.");
+      };
+
+      $("logoutBtn").onclick = async () => {
+        await setMyPresence(false);
+        await signOut(auth);
+      };
+
+      window.addEventListener("focus", () => setMyPresence(true));
+      window.addEventListener("blur", () => setMyPresence(false));
+      window.addEventListener("beforeunload", () => { setMyPresence(false); });
     }
 
-    onAuthStateChanged(auth, async (user) => {
-      if (!user) {
-        me = null;
-        meProfile = null;
-        activeChatId = null;
-        if (unsubMessages) {
-          unsubMessages();
-          unsubMessages = null;
+    function setupConfigHandlers() {
+      $("saveConfigBtn").onclick = async () => {
+        try {
+          const cfg = parseConfig($("firebaseConfigInput").value.trim());
+          localStorage.setItem(LS_CFG, JSON.stringify(cfg));
+          location.reload();
+        } catch (err) {
+          setStatus($("setupStatus"), err.message || "Ошибка JSON", true);
         }
-        chatView.classList.add("hidden");
-        authView.classList.remove("hidden");
-        return;
-      }
+      };
 
-      me = user;
+      $("resetCfgBtn").onclick = () => {
+        localStorage.removeItem(LS_CFG);
+        location.reload();
+      };
+    }
+
+    function setupGlobalHandlers() {
+      $("themeBtn").onclick = toggleTheme;
+      applyTheme();
+    }
+
+    async function boot() {
+      setupGlobalHandlers();
+      setupConfigHandlers();
+
+      let cfg = null;
       try {
-        await loadMyProfile(user.uid);
-      } catch (e) {
-        setStatus(`Ошибка профиля: ${e.message}`, true);
-        await signOut(auth);
-        return;
-      }
-      authView.classList.add("hidden");
-      chatView.classList.remove("hidden");
-      setStatus("");
-      subscribeChats();
-    });
-
-    $("tabLogin").onclick = () => switchMode("login");
-    $("tabReg").onclick = () => switchMode("register");
-    $("themeBtn").onclick = toggleTheme;
-    $("logoutBtn").onclick = () => signOut(auth);
-
-    $("searchInput").addEventListener("input", (e) => {
-      searchUsersByUsername(e.target.value).catch((err) => console.error(err));
-    });
-
-    $("composer").addEventListener("submit", async (e) => {
-      e.preventDefault();
-      try {
-        await sendMessage($("messageInput").value);
+        cfg = loadStoredConfig();
       } catch (err) {
-        console.error(err);
+        setStatus($("setupStatus"), `Невалидный сохранённый конфиг: ${err.message}`, true);
+        localStorage.removeItem(LS_CFG);
       }
-    });
 
-    applyTheme(true);
+      if (!cfg) {
+        route(setupView);
+        return;
+      }
+
+      try {
+        await initFirebaseWithConfig(cfg);
+      } catch (err) {
+        route(setupView);
+        setStatus($("setupStatus"), `Не удалось подключиться к Firebase: ${err.message}`, true);
+        return;
+      }
+
+      setupAuthHandlers();
+      setupMainHandlers();
+
+      onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+          me = null;
+          meProfile = null;
+          activeChatId = null;
+          activeOtherUser = null;
+          clearSubscriptions();
+          route(authView);
+          return;
+        }
+
+        me = user;
+        try {
+          await loadProfile(user.uid);
+          await setMyPresence(true);
+        } catch (err) {
+          await signOut(auth);
+          route(authView);
+          setStatus($("authStatus"), `Ошибка профиля: ${err.message}`, true);
+          return;
+        }
+
+        route(appView);
+        subscribeDialogs();
+      });
+    }
+
+    boot();
   </script>
 </body>
 </html>
