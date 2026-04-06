@@ -702,6 +702,18 @@
     </div>
   </div>
 
+  <div id="adminTransferModal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <h3>Передача прав администратора</h3>
+      <div class="ghost" id="adminTransferHint">Выберите участника группы</div>
+      <div id="adminTransferList" class="friend-list"></div>
+      <div class="modal-actions">
+        <button id="adminTransferCancelBtn" type="button" class="subtle-btn">Отмена</button>
+        <button id="adminTransferConfirmBtn" type="button" class="primary-btn" style="width:auto; min-height:40px; margin-top:0;">Передать и выйти</button>
+      </div>
+    </div>
+  </div>
+
   <div id="messageActionPanel" class="floating-panel">
     <button id="forwardActionBtn" class="subtle-btn" type="button">Переслать</button>
     <button id="deleteActionBtn" class="subtle-btn" type="button">Удалить</button>
@@ -758,7 +770,12 @@
       dialogs: [],
       messageNodes: new Map(),
       profileAvatarDraft: "",
-      groupAvatarDraft: ""
+      groupAvatarDraft: "",
+      adminTransfer: {
+        groupId: "",
+        leaveAfterTransfer: false,
+        selectedMemberId: ""
+      }
     };
 
     const unsub = { dialogs: null, messages: null, presence: null, user: null };
@@ -1446,7 +1463,7 @@
       });
     }
 
-    async function searchAll(prefix) {
+    async function searchUsersOnly(prefix) {
       if (!guardAuthAccess()) return;
       const term = toKey(prefix);
       if (term.length < 2) {
@@ -1460,15 +1477,7 @@
         .filter((u) => u.usernameKey !== state.user.usernameKey)
         .map((u) => ({ ...u, type: "user" }))
         .slice(0, 20);
-
-      const groupsSnap = await get(ref(db, "groups"));
-      const groups = Object.entries(groupsSnap.val() || {})
-        .map(([groupId, value]) => ({ ...value, type: "group", id: groupId, groupId }))
-        .filter((g) => g.members?.[state.user.usernameKey])
-        .filter((g) => toKey(g.name || "").includes(term))
-        .slice(0, 20);
-
-      renderSearch([...users, ...groups]);
+      renderSearch(users);
     }
 
     async function watchCurrentUser() {
@@ -1613,8 +1622,118 @@
       watchDialogs();
     }
 
+    function openAdminTransferModal(groupId, memberOptions) {
+      state.adminTransfer.groupId = groupId;
+      state.adminTransfer.leaveAfterTransfer = true;
+      state.adminTransfer.selectedMemberId = "";
+
+      const list = $("adminTransferList");
+      list.innerHTML = "";
+      memberOptions.forEach((member) => {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "chat-item";
+        row.innerHTML = `<div class="row-flex"><img class="avatar" src="${esc(getAvatar(member.avatarUrl))}" alt="" /><div><div class="chat-name">${esc(displayNameOf(member))}</div><div class="chat-preview">@${esc(member.username)}</div></div></div>`;
+        row.addEventListener("click", () => {
+          state.adminTransfer.selectedMemberId = member.usernameKey;
+          list.querySelectorAll(".chat-item").forEach((el) => el.classList.remove("active"));
+          row.classList.add("active");
+        });
+        list.appendChild(row);
+      });
+      $("adminTransferModal").style.display = "flex";
+    }
+
+    async function confirmAdminTransferAndLeave() {
+      const groupId = state.adminTransfer.groupId;
+      const newAdmin = state.adminTransfer.selectedMemberId;
+      if (!groupId || !newAdmin) {
+        alert("Выберите участника для передачи прав.");
+        return;
+      }
+
+      await update(ref(db), {
+        [`groups/${groupId}/creatorId`]: newAdmin,
+        [`groups/${groupId}/members/${state.user.usernameKey}`]: null,
+        [`userChats/${state.user.usernameKey}/${groupId}`]: { hidden: true }
+      });
+      $("adminTransferModal").style.display = "none";
+      state.adminTransfer = { groupId: "", leaveAfterTransfer: false, selectedMemberId: "" };
+      state.activeChat = null;
+      state.selectedMessageId = null;
+      $("chatTitle").textContent = "Выберите диалог";
+      $("chatCode").textContent = "chat: ---";
+      $("presence").textContent = "Статус: —";
+      $("deleteChatBtn").disabled = true;
+      $("messages").innerHTML = '<div class="empty">Вы вышли из группы.</div>';
+      toggleMessageActionPanel(false);
+    }
+
+    async function manageGroupFromHeaderDelete() {
+      const groupId = state.activeChat.id;
+      const groupSnap = await get(ref(db, `groups/${groupId}`));
+      if (!groupSnap.exists()) return;
+      const group = groupSnap.val();
+      const isCreator = group.creatorId === state.user.usernameKey;
+
+      const action = prompt("1 — Удалить группу из моего списка\\n2 — Выйти из группы", "1");
+      if (action !== "1" && action !== "2") return;
+
+      if (action === "1") {
+        await update(ref(db, `userChats/${state.user.usernameKey}/${groupId}`), { hidden: true });
+        state.activeChat = null;
+        state.selectedMessageId = null;
+        $("chatTitle").textContent = "Выберите диалог";
+        $("chatCode").textContent = "chat: ---";
+        $("presence").textContent = "Статус: —";
+        $("deleteChatBtn").disabled = true;
+        $("messages").innerHTML = '<div class="empty">Группа скрыта из вашего списка.</div>';
+        toggleMessageActionPanel(false);
+        return;
+      }
+
+      const members = Object.keys(group.members || {}).filter((id) => id !== state.user.usernameKey);
+
+      if (isCreator) {
+        if (!members.length) {
+          alert("В группе нет других участников для передачи прав. Нельзя выйти из группы.");
+          return;
+        }
+        const memberProfiles = [];
+        for (const memberId of members) {
+          const memberSnap = await get(ref(db, `users/${memberId}`));
+          if (memberSnap.exists()) {
+            memberProfiles.push(memberSnap.val());
+          }
+        }
+        if (!memberProfiles.length) {
+          alert("Нет доступного участника для передачи прав. Нельзя выйти из группы.");
+          return;
+        }
+        openAdminTransferModal(groupId, memberProfiles);
+        return;
+      }
+
+      await update(ref(db), {
+        [`groups/${groupId}/members/${state.user.usernameKey}`]: null,
+        [`userChats/${state.user.usernameKey}/${groupId}`]: { hidden: true }
+      });
+      state.activeChat = null;
+      state.selectedMessageId = null;
+      $("chatTitle").textContent = "Выберите диалог";
+      $("chatCode").textContent = "chat: ---";
+      $("presence").textContent = "Статус: —";
+      $("deleteChatBtn").disabled = true;
+      $("messages").innerHTML = '<div class="empty">Вы вышли из группы.</div>';
+      toggleMessageActionPanel(false);
+    }
+
     async function deleteCurrentChat() {
       if (!state.activeChat || !guardAuthAccess()) return;
+      if (state.activeChat.type === "group") {
+        await manageGroupFromHeaderDelete();
+        return;
+      }
       const ok = confirm("Скрыть чат только для вас?");
       if (!ok) return;
 
@@ -1710,7 +1829,7 @@
       $("searchInput").addEventListener("input", () => {
         clearTimeout(searchTimer);
         searchTimer = setTimeout(() => {
-          if (state.user) searchAll($("searchInput").value).catch(() => renderSearch([]));
+          if (state.user) searchUsersOnly($("searchInput").value).catch(() => renderSearch([]));
         }, 220);
       });
 
@@ -1782,6 +1901,14 @@
         state.groupAvatarDraft = await fileToSquareBase64(file);
       });
 
+      $("adminTransferCancelBtn").addEventListener("click", () => {
+        $("adminTransferModal").style.display = "none";
+        state.adminTransfer = { groupId: "", leaveAfterTransfer: false, selectedMemberId: "" };
+      });
+      $("adminTransferConfirmBtn").addEventListener("click", () => {
+        confirmAdminTransferAndLeave().catch(() => {});
+      });
+
       $("forwardActionBtn").addEventListener("click", () => openForwardModal().catch(() => {}));
       $("deleteActionBtn").addEventListener("click", () => deleteSelectedMessage().catch(() => {}));
       $("forwardCloseBtn").addEventListener("click", () => { $("forwardModal").style.display = "none"; });
@@ -1796,7 +1923,7 @@
         toggleMessageActionPanel(false);
       });
 
-      ["forwardModal", "groupModal"].forEach((id) => {
+      ["forwardModal", "groupModal", "adminTransferModal"].forEach((id) => {
         $(id).addEventListener("click", (event) => {
           if (event.target.id === id) $(id).style.display = "none";
         });
