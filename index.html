@@ -233,6 +233,36 @@
       display: flex;
       flex-direction: column;
       height: 100dvh;
+      position: relative;
+    }
+
+    #chatPrimary {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      transition: padding-right var(--transition);
+    }
+
+    .chat-view.with-inline-profile #chatPrimary {
+      padding-right: 320px;
+    }
+
+    #inlineProfileSidebar {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 320px;
+      border-left: 1px solid var(--border);
+      background: var(--bg);
+      display: none;
+      overflow-y: auto;
+      padding: 14px;
+    }
+
+    .chat-view.with-inline-profile #inlineProfileSidebar {
+      display: block;
     }
 
     .chat-header {
@@ -513,6 +543,14 @@
         background: var(--bg);
       }
 
+      #inlineProfileSidebar {
+        width: min(84vw, 320px);
+      }
+
+      .chat-view.with-inline-profile #chatPrimary {
+        padding-right: min(84vw, 320px);
+      }
+
       #chatPage.state-list .chat-view { display: none; }
       #chatPage.state-chat .sidebar { display: none; }
 
@@ -603,32 +641,50 @@
     </aside>
 
     <main class="chat-view">
-      <header class="chat-header">
-        <div class="header-controls">
-          <button id="mobileBack" class="subtle-btn mobile-back" type="button" aria-label="Назад">←</button>
-          <div>
-            <div class="chat-title" id="chatTitle">Выберите диалог</div>
-            <div class="chat-meta" id="presence">Статус: —</div>
+      <div id="chatPrimary">
+        <header class="chat-header">
+          <div class="header-controls">
+            <button id="mobileBack" class="subtle-btn mobile-back" type="button" aria-label="Назад">←</button>
+            <div>
+              <div class="chat-title" id="chatTitle">Выберите диалог</div>
+              <div class="chat-meta" id="presence">Статус: —</div>
+            </div>
+          </div>
+          <div class="header-controls">
+            <div id="chatCode">chat: ---</div>
+            <button id="deleteChatBtn" class="subtle-btn" type="button" disabled>Удалить чат</button>
+          </div>
+        </header>
+
+        <div class="message-viewport" id="messageViewport">
+          <div id="messages">
+            <div class="empty">Найдите пользователя по логину, откройте диалог и начните переписку.</div>
           </div>
         </div>
-        <div class="header-controls">
-          <div id="chatCode">chat: ---</div>
-          <button id="deleteChatBtn" class="subtle-btn" type="button" disabled>Удалить чат</button>
-        </div>
-      </header>
 
-      <div class="message-viewport" id="messageViewport">
-        <div id="messages">
-          <div class="empty">Найдите пользователя по логину, откройте диалог и начните переписку.</div>
-        </div>
+        <form id="composer" class="composer">
+          <div class="composer-inner">
+            <textarea id="messageInput" maxlength="1500" placeholder="Write a message..."></textarea>
+            <button id="sendBtn" type="submit">Отправить</button>
+          </div>
+        </form>
       </div>
 
-      <form id="composer" class="composer">
-        <div class="composer-inner">
-          <textarea id="messageInput" maxlength="1500" placeholder="Write a message..."></textarea>
-          <button id="sendBtn" type="submit">Отправить</button>
+      <aside id="inlineProfileSidebar">
+        <button id="inlineProfileBackBtn" class="subtle-btn" type="button" style="display:none;">← Назад к участникам</button>
+        <img id="inlineProfileAvatar" class="profile-page-avatar" style="width:72px;height:72px;margin-bottom:10px;" alt="avatar" />
+        <div class="profile-page-name" id="inlineProfileName">Профиль</div>
+        <div class="profile-page-user" id="inlineProfileUsername">@username</div>
+        <div class="profile-page-status" id="inlineProfileStatus">Статус: —</div>
+        <div class="profile-page-last" id="inlineProfileFriendStatus">Статус дружбы: —</div>
+        <div class="profile-page-actions">
+          <button id="inlineFriendActionBtn" class="subtle-btn" type="button">Добавить в друзья</button>
+          <button id="inlineMessageBtn" class="subtle-btn" type="button">Написать</button>
+          <button id="inlineForwardBtn" class="subtle-btn" type="button">Переслать</button>
+          <button id="inlineDeleteBtn" class="subtle-btn" type="button">Удалить</button>
         </div>
-      </form>
+        <div id="groupParticipantsBox" class="friend-list" style="display:none;"></div>
+      </aside>
     </main>
   </section>
 
@@ -764,6 +820,7 @@
       selectedMessageId: null,
       profileUser: null,
       friends: {},
+      friendRequests: {},
       requests: { incoming: {}, outgoing: {} },
       groups: [],
       hiddenMessages: {},
@@ -919,6 +976,7 @@
 
     function refreshLocalFriendState(user) {
       state.friends = user?.friends || {};
+      state.friendRequests = user?.friendRequests || {};
       state.requests = {
         incoming: user?.incomingRequests || {},
         outgoing: user?.outgoingRequests || {}
@@ -960,6 +1018,79 @@
       }
     }
 
+    async function showInlineProfileByUser(user, options = {}) {
+      if (!user) return;
+      state.profileUser = user;
+      const isSelf = toKey(user.username) === state.user.usernameKey;
+      const targetKey = toKey(user.username);
+      const isFriend = Boolean(state.friends[targetKey]);
+
+      $("groupParticipantsBox").style.display = "none";
+      $("inlineProfileBackBtn").style.display = options.showBack ? "inline-flex" : "none";
+      $("inlineProfileAvatar").style.display = "block";
+      $("inlineProfileName").style.display = "block";
+      $("inlineProfileUsername").style.display = "block";
+      $("inlineProfileStatus").style.display = "block";
+      $("inlineProfileFriendStatus").style.display = "block";
+
+      $("inlineProfileAvatar").src = getAvatar(user.avatarUrl);
+      $("inlineProfileName").textContent = displayNameOf(user);
+      $("inlineProfileUsername").textContent = `@${user.username}`;
+      $("inlineProfileStatus").textContent = `Статус: ${user.status || "—"}`;
+      $("inlineProfileFriendStatus").textContent = isSelf
+        ? "Статус дружбы: это вы"
+        : `Статус дружбы: ${isFriend ? "Friend" : "Not Friend"}`;
+
+      $("inlineFriendActionBtn").style.display = isSelf ? "none" : "inline-flex";
+      $("inlineMessageBtn").style.display = isSelf ? "none" : "inline-flex";
+      $("inlineFriendActionBtn").textContent = isFriend ? "Удалить из друзей" : "Добавить в друзья";
+
+      $("inlineForwardBtn").disabled = !state.selectedMessageId;
+      $("inlineDeleteBtn").disabled = !state.selectedMessageId;
+
+      $("chatPage").style.display = "grid";
+      $("chatPage").classList.add("state-chat");
+      document.querySelector(".chat-view").classList.add("with-inline-profile");
+    }
+
+    async function showInlineGroupParticipants(groupId) {
+      const groupSnap = await get(ref(db, `groups/${groupId}`));
+      if (!groupSnap.exists()) return;
+      const group = groupSnap.val();
+
+      $("inlineProfileBackBtn").style.display = "none";
+      $("groupParticipantsBox").style.display = "grid";
+      $("inlineProfileAvatar").style.display = "none";
+      $("inlineProfileName").style.display = "block";
+      $("inlineProfileUsername").style.display = "none";
+      $("inlineProfileStatus").style.display = "none";
+      $("inlineProfileFriendStatus").style.display = "none";
+      $("inlineFriendActionBtn").style.display = "none";
+      $("inlineMessageBtn").style.display = "none";
+      $("inlineForwardBtn").disabled = !state.selectedMessageId;
+      $("inlineDeleteBtn").disabled = !state.selectedMessageId;
+      $("inlineProfileName").textContent = `Участники: ${group.name || "Группа"}`;
+
+      const box = $("groupParticipantsBox");
+      box.innerHTML = "";
+      const memberIds = Object.keys(group.members || {});
+      const memberSnapshots = await Promise.all(memberIds.map((id) => get(ref(db, `users/${id}`))));
+      memberSnapshots.forEach((snap) => {
+        if (!snap.exists()) return;
+        const member = snap.val();
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "chat-item";
+        row.innerHTML = `<div class="row-flex"><img class="avatar" src="${esc(getAvatar(member.avatarUrl))}" alt="" /><div><div class="chat-name">${esc(displayNameOf(member))}</div><div class="chat-preview">@${esc(member.username)}</div></div></div>`;
+        row.addEventListener("click", () => {
+          showInlineProfileByUser(member, { showBack: true }).catch(() => {});
+        });
+        box.appendChild(row);
+      });
+
+      document.querySelector(".chat-view").classList.add("with-inline-profile");
+    }
+
     async function openProfilePageByKey(userKey) {
       const snap = await get(ref(db, `users/${userKey}`));
       if (!snap.exists()) return;
@@ -986,6 +1117,8 @@
     async function sendFriendRequest(targetKey) {
       if (!targetKey || targetKey === state.user.usernameKey) return;
       await update(ref(db), {
+        [`users/${state.user.usernameKey}/friendRequests/${targetKey}`]: true,
+        [`users/${targetKey}/friendRequests/${state.user.usernameKey}`]: true,
         [`users/${targetKey}/incomingRequests/${state.user.usernameKey}`]: true,
         [`users/${state.user.usernameKey}/outgoingRequests/${targetKey}`]: true
       });
@@ -999,7 +1132,22 @@
         forwarded: false,
         originalSender: ""
       });
-      await openProfilePageByKey(targetKey);
+      const targetSnap = await get(ref(db, `users/${targetKey}`));
+      if (targetSnap.exists()) {
+        await showInlineProfileByUser(targetSnap.val());
+      }
+    }
+
+    async function removeFriend(targetKey) {
+      if (!targetKey || targetKey === state.user.usernameKey) return;
+      await update(ref(db), {
+        [`users/${state.user.usernameKey}/friends/${targetKey}`]: null,
+        [`users/${targetKey}/friends/${state.user.usernameKey}`]: null
+      });
+      const snap = await get(ref(db, `users/${targetKey}`));
+      if (snap.exists()) {
+        await showInlineProfileByUser(snap.val());
+      }
     }
 
     async function acceptFriendRequest(targetKey) {
@@ -1107,6 +1255,7 @@
       $("deleteChatBtn").disabled = false;
       watchPresence();
       watchMessages();
+      await showInlineGroupParticipants(state.activeChat.id);
       pageSwitch("chatPage");
       if (window.matchMedia("(max-width: 860px)").matches) setMobileState("state-chat");
       $("messageInput").focus();
@@ -1116,6 +1265,8 @@
 
     function toggleMessageActionPanel(show) {
       $("messageActionPanel").style.display = show ? "flex" : "none";
+      $("inlineForwardBtn").disabled = !show;
+      $("inlineDeleteBtn").disabled = !show;
     }
 
     function selectMessage(id) {
@@ -1155,6 +1306,7 @@
 
       watchPresence();
       watchMessages();
+      await showInlineProfileByUser(peerProfile);
       pageSwitch("chatPage");
       if (window.matchMedia("(max-width: 860px)").matches) setMobileState("state-chat");
       $("messageInput").focus();
@@ -1416,7 +1568,6 @@
         } else {
           btn.innerHTML = `<div class="row-flex"><img class="avatar" src="${esc(getAvatar(item.avatarUrl))}" alt="" /><div><div class="chat-name">${esc(displayNameOf(item))}</div><div class="chat-preview">@${esc(item.username)} · ${esc(item.status || "")}</div></div></div>`;
           btn.addEventListener("click", () => openPrivateDialog(item));
-          btn.addEventListener("dblclick", () => openProfilePageByKey(item.usernameKey).catch(() => {}));
         }
 
         root.appendChild(btn);
@@ -1495,35 +1646,32 @@
       if (unsub.dialogs) unsub.dialogs();
       unsub.dialogs = onValue(ref(db, `userChats/${state.user.usernameKey}`), async (snap) => {
         const raw = Object.values(snap.val() || {}).filter((d) => !d.hidden);
-        const resolved = [];
-
-        for (const d of raw) {
+        const resolved = await Promise.all(raw.map(async (d) => {
           if (d.type === "group") {
             const groupSnap = await get(ref(db, `groups/${d.groupId || d.id}`));
             const group = groupSnap.val() || {};
-            resolved.push({
+            return {
               ...d,
               type: "group",
               id: d.groupId || d.id,
               groupId: d.groupId || d.id,
               name: group.name || d.name || "Группа",
               avatarUrl: group.avatarUrl || d.avatarUrl || ""
-            });
-          } else {
-            const peerKey = toKey(d.peer || "");
-            const peerSnap = await get(ref(db, `users/${peerKey}`));
-            const peer = peerSnap.val() || { username: d.peer, displayName: d.peer };
-            resolved.push({
-              ...d,
-              type: "private",
-              id: d.chatId || d.id,
-              chatId: d.chatId || d.id,
-              peer: peer.username,
-              peerDisplayName: displayNameOf(peer),
-              avatarUrl: peer.avatarUrl || ""
-            });
+            };
           }
-        }
+          const peerKey = toKey(d.peer || "");
+          const peerSnap = await get(ref(db, `users/${peerKey}`));
+          const peer = peerSnap.val() || { username: d.peer, displayName: d.peer };
+          return {
+            ...d,
+            type: "private",
+            id: d.chatId || d.id,
+            chatId: d.chatId || d.id,
+            peer: peer.username,
+            peerDisplayName: displayNameOf(peer),
+            avatarUrl: peer.avatarUrl || ""
+          };
+        }));
 
         state.dialogs = resolved.sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
         renderDialogs();
@@ -1587,6 +1735,7 @@
         displayName,
         avatarUrl: "",
         status: "",
+        friendRequests: {},
         friends: {},
         incomingRequests: {},
         outgoingRequests: {},
@@ -1758,6 +1907,7 @@
       state.selectedMessageId = null;
       state.profileUser = null;
       state.friends = {};
+      state.friendRequests = {};
       state.requests = { incoming: {}, outgoing: {} };
       state.groups = [];
       state.hiddenMessages = {};
@@ -1767,6 +1917,7 @@
       $("searchResults").innerHTML = "";
       $("messageInput").value = "";
       toggleMessageActionPanel(false);
+      document.querySelector(".chat-view").classList.remove("with-inline-profile");
       pageSwitch("authPage");
     }
 
@@ -1862,8 +2013,14 @@
       });
 
       $("chatTitle").addEventListener("click", () => {
-        if (!state.activeChat || state.activeChat.type !== "private") return;
-        openProfilePageByKey(state.activeChat.peerKey).catch(() => {});
+        if (!state.activeChat) return;
+        if (state.activeChat.type === "private") {
+          get(ref(db, `users/${state.activeChat.peerKey}`)).then(async (snap) => {
+            if (snap.exists()) await showInlineProfileByUser(snap.val());
+          }).catch(() => {});
+          return;
+        }
+        showInlineGroupParticipants(state.activeChat.id).catch(() => {});
       });
 
       $("profileBackBtn").addEventListener("click", () => pageSwitch("chatPage"));
@@ -1891,6 +2048,30 @@
         if (!state.profileUser) return;
         openPrivateDialog(state.profileUser).catch(() => {});
       });
+
+      $("inlineProfileBackBtn").addEventListener("click", () => {
+        if (state.activeChat?.type === "group") {
+          showInlineGroupParticipants(state.activeChat.id).catch(() => {});
+        }
+      });
+      $("inlineFriendActionBtn").addEventListener("click", () => {
+        const targetKey = toKey(state.profileUser?.username);
+        if (!targetKey) return;
+        if (state.friends[targetKey]) {
+          removeFriend(targetKey).catch(() => {});
+        } else {
+          sendFriendRequest(targetKey).then(async () => {
+            const snap = await get(ref(db, `users/${targetKey}`));
+            if (snap.exists()) await showInlineProfileByUser(snap.val());
+          }).catch(() => {});
+        }
+      });
+      $("inlineMessageBtn").addEventListener("click", () => {
+        if (!state.profileUser) return;
+        openPrivateDialog(state.profileUser).catch(() => {});
+      });
+      $("inlineForwardBtn").addEventListener("click", () => openForwardModal().catch(() => {}));
+      $("inlineDeleteBtn").addEventListener("click", () => deleteSelectedMessage().catch(() => {}));
 
       $("createGroupBtn").addEventListener("click", () => openGroupModal().catch(() => {}));
       $("groupCancelBtn").addEventListener("click", () => { $("groupModal").style.display = "none"; });
