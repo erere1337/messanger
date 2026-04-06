@@ -251,6 +251,7 @@
       font-weight: 600;
       letter-spacing: -0.01em;
       line-height: 1.1;
+      cursor: pointer;
     }
 
     .chat-meta {
@@ -306,9 +307,12 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
+      border-radius: 8px;
+      padding: 6px;
     }
 
     .message.outgoing { align-items: flex-end; }
+    .message.selected { background: var(--bg-soft); }
 
     .message-block {
       max-width: min(90%, 560px);
@@ -335,18 +339,9 @@
       color: var(--text);
     }
 
-    .message-actions {
-      margin-top: 8px;
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    .delete-msg {
-      min-height: 34px;
-      font-size: .78rem;
-      padding: 6px 10px;
-      border-radius: 6px;
-      background: var(--bg);
+    .system-message {
+      color: var(--muted);
+      font-size: .84rem;
     }
 
     .composer {
@@ -392,8 +387,16 @@
 
     .mobile-back { display: none; }
 
+    .floating-panel {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 1000;
+      display: none;
+      gap: 8px;
+    }
 
-    .profile-modal-backdrop {
+    .modal-backdrop {
       position: fixed;
       inset: 0;
       background: rgba(0, 0, 0, 0.35);
@@ -404,24 +407,94 @@
       padding: 16px;
     }
 
-    .profile-modal {
+    .modal-card {
       width: min(100%, 420px);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       background: var(--bg);
       padding: 16px;
+      max-height: 85dvh;
+      overflow-y: auto;
     }
 
-    .profile-grid {
-      display: grid;
-      gap: 10px;
-    }
-
-    .profile-actions {
+    .modal-actions {
       margin-top: 12px;
       display: flex;
       gap: 8px;
       justify-content: flex-end;
+    }
+
+    .avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      object-fit: cover;
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .row-flex {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #profilePage {
+      display: none;
+      min-height: 100dvh;
+      padding: 20px;
+      background: var(--bg-soft);
+      overflow-y: auto;
+    }
+
+    .profile-page-card {
+      width: min(100%, 560px);
+      margin: 0 auto;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      padding: 20px;
+    }
+
+    .profile-page-avatar {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      object-fit: cover;
+      background: var(--surface);
+      margin: 0 auto 14px;
+      display: block;
+    }
+
+    .profile-page-name {
+      font-size: 1.2rem;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .profile-page-user,
+    .profile-page-status,
+    .profile-page-last {
+      text-align: center;
+      color: var(--muted);
+      margin-top: 6px;
+      font-size: .86rem;
+    }
+
+    .profile-page-actions {
+      margin-top: 16px;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .friend-list {
+      margin-top: 12px;
+      display: grid;
+      gap: 8px;
     }
 
     @media (max-width: 860px) {
@@ -523,7 +596,8 @@
       <div id="searchResults" class="list"></div>
       <div id="dialogsList" class="list"></div>
 
-      <div class="sidebar-actions">
+      <div class="sidebar-actions" style="display:grid; gap:8px;">
+        <button class="subtle-btn" id="createGroupBtn" type="button">Создать группу</button>
         <button class="danger" id="logoutBtn" type="button">Выйти</button>
       </div>
     </aside>
@@ -558,34 +632,79 @@
     </main>
   </section>
 
+  <section id="profilePage">
+    <div class="profile-page-card">
+      <button id="profileBackBtn" class="subtle-btn" type="button">← Назад</button>
+      <img id="profileAvatar" class="profile-page-avatar" alt="avatar" />
+      <div class="profile-page-name" id="profileName">Имя</div>
+      <div class="profile-page-user" id="profileUsername">@username</div>
+      <div class="profile-page-status" id="profileStatusText">Статус: —</div>
+      <div class="profile-page-last" id="profileLastSeen">Был(а): —</div>
 
-
-  <div id="profileModalBackdrop" class="profile-modal-backdrop" role="dialog" aria-modal="true">
-    <div class="profile-modal">
-      <h3 id="profileModalTitle">Профиль</h3>
-      <div class="profile-grid">
+      <div id="profileEditBlock" style="display:none; margin-top:12px;">
         <div class="field">
-          <label for="profileLogin">Логин</label>
-          <input class="input" id="profileLogin" readonly />
+          <label for="profileDisplayNameInput">Имя</label>
+          <input id="profileDisplayNameInput" class="input" maxlength="64" />
         </div>
         <div class="field">
-          <label for="profileDisplayName">Имя</label>
-          <input class="input" id="profileDisplayName" maxlength="64" />
+          <label for="profileStatusInput">Статус</label>
+          <input id="profileStatusInput" class="input" maxlength="120" />
         </div>
         <div class="field">
-          <label for="profileStatus">Статус</label>
-          <input class="input" id="profileStatus" maxlength="120" />
+          <label for="profileAvatarInput">Аватар</label>
+          <input id="profileAvatarInput" class="input" type="file" accept="image/*" />
         </div>
-        <div class="field">
-          <label for="profileAvatarUrl">Avatar URL</label>
-          <input class="input" id="profileAvatarUrl" maxlength="500" />
-        </div>
+        <button id="profileSaveBtn" type="button" class="primary-btn">Сохранить</button>
       </div>
-      <div class="profile-actions">
-        <button type="button" id="profileCloseBtn" class="subtle-btn">Закрыть</button>
-        <button type="button" id="profileSaveBtn" class="primary-btn" style="width:auto; min-height:40px; margin-top:0;">Сохранить</button>
+
+      <div class="profile-page-actions">
+        <button id="profileAddFriendBtn" type="button" class="subtle-btn" style="display:none;">Добавить в друзья</button>
+        <button id="profileAcceptBtn" type="button" class="subtle-btn" style="display:none;">Принять заявку</button>
+        <button id="profileDeclineBtn" type="button" class="subtle-btn" style="display:none;">Отклонить</button>
+        <button id="profileMessageBtn" type="button" class="subtle-btn" style="display:none;">Написать</button>
       </div>
     </div>
+  </section>
+
+  <div id="forwardModal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <h3>Переслать сообщение</h3>
+      <div id="forwardTargets" class="friend-list"></div>
+      <div class="modal-actions">
+        <button id="forwardCloseBtn" type="button" class="subtle-btn">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="groupModal" class="modal-backdrop" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <h3>Создать группу</h3>
+      <div class="field">
+        <label for="groupNameInput">Название</label>
+        <input id="groupNameInput" class="input" maxlength="80" />
+      </div>
+      <div class="field">
+        <label for="groupDescriptionInput">Описание</label>
+        <input id="groupDescriptionInput" class="input" maxlength="160" />
+      </div>
+      <div class="field">
+        <label for="groupAvatarInput">Аватар</label>
+        <input id="groupAvatarInput" class="input" type="file" accept="image/*" />
+      </div>
+      <div class="field">
+        <label>Участники (только друзья)</label>
+        <div id="groupFriendsList" class="friend-list"></div>
+      </div>
+      <div class="modal-actions">
+        <button id="groupCancelBtn" type="button" class="subtle-btn">Отмена</button>
+        <button id="groupCreateBtn" type="button" class="primary-btn" style="width:auto; min-height:40px; margin-top:0;">Создать</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="messageActionPanel" class="floating-panel">
+    <button id="forwardActionBtn" class="subtle-btn" type="button">Переслать</button>
+    <button id="deleteActionBtn" class="subtle-btn" type="button">Удалить</button>
   </div>
 
   <script type="module">
@@ -624,52 +743,72 @@
 
     const LS_SESSION = "messenger_session_v4";
     const $ = (id) => document.getElementById(id);
+    const defaultAvatar = "data:image/svg+xml;base64," + btoa(`<svg xmlns='http://www.w3.org/2000/svg' width='256' height='256'><rect width='100%' height='100%' fill='#f7f6f3'/><circle cx='128' cy='96' r='48' fill='#d9d9d9'/><rect x='56' y='156' width='144' height='72' rx='36' fill='#d9d9d9'/></svg>`);
 
     const state = {
       mode: "login",
-      currentUser: null,
+      user: null,
       activeChat: null,
       selectedMessageId: null,
+      profileUser: null,
+      friends: {},
+      requests: { incoming: {}, outgoing: {} },
       groups: [],
+      hiddenMessages: {},
       dialogs: [],
-      hiddenMap: {},
-      messageNodes: new Map()
+      messageNodes: new Map(),
+      profileAvatarDraft: "",
+      groupAvatarDraft: ""
     };
 
-    const unsub = { dialogs: null, messages: null, presence: null };
+    const unsub = { dialogs: null, messages: null, presence: null, user: null };
+
     let isAuthSubmitting = false;
     let isSendingMessage = false;
 
-    const actionPanel = createActionPanel();
-
     function esc(v) {
-      return String(v).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+      return String(v || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
     }
 
-    function toKey(login) {
-      return String(login || "").trim().toLowerCase();
+    function toKey(value) {
+      return String(value || "").trim().toLowerCase();
     }
 
     function isValidLogin(login) {
       return /^[a-zA-Z0-9_.-]{3,24}$/.test(login);
     }
 
-    function chatIdByUsers(a, b) {
-      return [toKey(a), toKey(b)].sort().join("__");
+    function displayNameOf(user) {
+      const name = String(user?.displayName || "").trim();
+      return name || `@${user?.username || "unknown"}`;
     }
 
     function formatTime(ts) {
-      return ts ? new Date(ts).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }) : "--:--";
+      if (!ts) return "--:--";
+      return new Date(ts).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    function formatLastSeen(ts) {
+      if (!ts) return "—";
+      return new Date(ts).toLocaleString("ru-RU");
+    }
+
+    function privateChatId(a, b) {
+      return [toKey(a), toKey(b)].sort().join("__");
     }
 
     function activeChatKey(chat = state.activeChat) {
-      if (!chat) return "";
-      return chat.type === "group" ? `g_${chat.groupId}` : `p_${chat.chatId}`;
+      return chat ? `${chat.type}_${chat.id}` : "";
     }
 
     function messagePath(chat = state.activeChat) {
       if (!chat) return "";
-      return chat.type === "group" ? `groups/${chat.groupId}/messages` : `messages/${chat.chatId}`;
+      return chat.type === "group" ? `groups/${chat.id}/messages` : `messages/${chat.id}`;
     }
 
     async function hashPassword(raw) {
@@ -678,29 +817,18 @@
       return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
     }
 
-    async function fileToSquareBase64(file) {
-      return new Promise((resolve, reject) => {
-        if (!file) return resolve("");
-        const reader = new FileReader();
-        reader.onload = () => {
-          const image = new Image();
-          image.onload = () => {
-            const size = Math.min(image.width, image.height);
-            const sx = Math.floor((image.width - size) / 2);
-            const sy = Math.floor((image.height - size) / 2);
-            const canvas = document.createElement("canvas");
-            canvas.width = 256;
-            canvas.height = 256;
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(image, sx, sy, size, size, 0, 0, 256, 256);
-            resolve(canvas.toDataURL("image/jpeg", 0.85));
-          };
-          image.onerror = () => reject(new Error("Ошибка чтения изображения"));
-          image.src = reader.result;
-        };
-        reader.onerror = () => reject(new Error("Ошибка чтения файла"));
-        reader.readAsDataURL(file);
+    function clearAuthArtifacts() {
+      localStorage.removeItem(LS_SESSION);
+      sessionStorage.removeItem(LS_SESSION);
+    }
+
+    function pageSwitch(pageId) {
+      ["authPage", "chatPage", "profilePage"].forEach((id) => {
+        $(id).style.display = id === pageId ? (id === "chatPage" ? "grid" : "block") : "none";
       });
+      if (pageId === "authPage") {
+        $("authPage").style.display = "grid";
+      }
     }
 
     function setStatus(text, isError = false) {
@@ -709,14 +837,12 @@
       el.className = isError ? "error" : "";
     }
 
-    function clearAuthArtifacts() {
-      localStorage.removeItem(LS_SESSION);
-      sessionStorage.removeItem(LS_SESSION);
-    }
-
     function setAuthLoading(loading) {
       isAuthSubmitting = loading;
-      ["authSubmit", "loginTab", "registerTab", "usernameInput", "passwordInput"].forEach((id) => { $(id).disabled = loading; });
+      ["authSubmit", "loginTab", "registerTab", "usernameInput", "displayNameInput", "passwordInput"].forEach((id) => {
+        const el = $(id);
+        if (el) el.disabled = loading;
+      });
       $("authSubmit").textContent = loading ? (state.mode === "login" ? "Вход..." : "Регистрация...") : (state.mode === "login" ? "Войти" : "Зарегистрироваться");
     }
 
@@ -725,334 +851,374 @@
       state.mode = nextMode;
       $("loginTab").classList.toggle("active", state.mode === "login");
       $("registerTab").classList.toggle("active", state.mode === "register");
-      $("authSubmit").textContent = state.mode === "login" ? "Войти" : "Зарегистрироваться";
       $("displayNameField").style.display = state.mode === "register" ? "block" : "none";
       $("displayNameInput").required = state.mode === "register";
+      $("authSubmit").textContent = state.mode === "login" ? "Войти" : "Зарегистрироваться";
       setStatus(state.mode === "login" ? "Режим входа." : "Режим регистрации.");
     }
 
     function guardAuthAccess() {
-      if (state.currentUser) return true;
-      $("chatPage").style.display = "none";
-      $("authPage").style.display = "grid";
+      if (state.user) return true;
+      pageSwitch("authPage");
       return false;
     }
 
-    function setMobileState(value) {
+    function setMobileState(name) {
       const root = $("chatPage");
       root.classList.remove("state-list", "state-chat");
-      root.classList.add(value);
+      root.classList.add(name);
     }
 
-    function openProfile(user, editable = false) {
-      if (!user) return;
-      $("profileModalTitle").textContent = editable ? "Мой профиль" : "Профиль пользователя";
-      $("profileLogin").value = `@${user.username || "unknown"}`;
-      $("profileDisplayName").value = user.displayName || user.username || "";
-      $("profileStatus").value = user.status || "";
-      $("profileAvatarUrl").value = user.avatarUrl || "";
-      $("profileDisplayName").readOnly = !editable;
-      $("profileStatus").readOnly = !editable;
-      $("profileAvatarUrl").readOnly = !editable;
-      $("profileSaveBtn").style.display = editable ? "inline-flex" : "none";
-      $("profileModalBackdrop").style.display = "flex";
+    function getAvatar(url) {
+      return String(url || "").trim() || defaultAvatar;
     }
 
-    function closeProfileModal() {
-      $("profileModalBackdrop").style.display = "none";
+    async function fileToSquareBase64(file) {
+      return new Promise((resolve, reject) => {
+        if (!file) return resolve("");
+        const reader = new FileReader();
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            const size = Math.min(img.width, img.height);
+            const sx = (img.width - size) / 2;
+            const sy = (img.height - size) / 2;
+            const canvas = document.createElement("canvas");
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, sx, sy, size, size, 0, 0, 256, 256);
+            resolve(canvas.toDataURL("image/jpeg", 0.85));
+          };
+          img.onerror = () => reject(new Error("Не удалось обработать изображение"));
+          img.src = reader.result;
+        };
+        reader.onerror = () => reject(new Error("Не удалось прочитать файл"));
+        reader.readAsDataURL(file);
+      });
     }
 
-    async function editMyProfile() {
-      if (!guardAuthAccess()) return;
-      openProfile(state.currentUser, true);
+    // ===== PROFILE =====
+
+    function refreshLocalFriendState(user) {
+      state.friends = user?.friends || {};
+      state.requests = {
+        incoming: user?.incomingRequests || {},
+        outgoing: user?.outgoingRequests || {}
+      };
     }
 
-    async function saveProfileFromModal() {
+    function renderProfilePage() {
+      const u = state.profileUser;
+      if (!u) return;
+      const isSelf = toKey(u.username) === state.user.usernameKey;
+      const targetKey = toKey(u.username);
+      const isFriend = Boolean(state.friends[targetKey]);
+      const incoming = Boolean(state.requests.incoming[targetKey]);
+      const outgoing = Boolean(state.requests.outgoing[targetKey]);
+
+      $("profileAvatar").src = getAvatar(u.avatarUrl);
+      $("profileName").textContent = displayNameOf(u);
+      $("profileUsername").textContent = `@${u.username || "unknown"}`;
+      $("profileStatusText").textContent = `Статус: ${u.status || "—"}`;
+      $("profileLastSeen").textContent = `Был(а): ${formatLastSeen(u.lastSeen)}`;
+
+      $("profileEditBlock").style.display = isSelf ? "block" : "none";
+      $("profileDisplayNameInput").value = u.displayName || "";
+      $("profileStatusInput").value = u.status || "";
+      state.profileAvatarDraft = u.avatarUrl || "";
+
+      $("profileAddFriendBtn").style.display = !isSelf && !isFriend && !incoming && !outgoing ? "inline-flex" : "none";
+      $("profileAcceptBtn").style.display = !isSelf && incoming ? "inline-flex" : "none";
+      $("profileDeclineBtn").style.display = !isSelf && incoming ? "inline-flex" : "none";
+      $("profileMessageBtn").style.display = !isSelf ? "inline-flex" : "none";
+
+      if (!isSelf && outgoing) {
+        $("profileAddFriendBtn").style.display = "inline-flex";
+        $("profileAddFriendBtn").textContent = "Запрос отправлен";
+        $("profileAddFriendBtn").disabled = true;
+      } else {
+        $("profileAddFriendBtn").textContent = "Добавить в друзья";
+        $("profileAddFriendBtn").disabled = false;
+      }
+    }
+
+    async function openProfilePageByKey(userKey) {
+      const snap = await get(ref(db, `users/${userKey}`));
+      if (!snap.exists()) return;
+      state.profileUser = snap.val();
+      renderProfilePage();
+      pageSwitch("profilePage");
+    }
+
+    async function saveMyProfile() {
       if (!guardAuthAccess()) return;
       const patch = {
-        displayName: $("profileDisplayName").value.trim().slice(0, 64) || state.currentUser.username,
-        status: $("profileStatus").value.trim().slice(0, 120),
-        avatarUrl: $("profileAvatarUrl").value.trim().slice(0, 500),
-        lastSeen: Date.now()
+        displayName: $("profileDisplayNameInput").value.trim().slice(0, 64) || state.user.username,
+        status: $("profileStatusInput").value.trim().slice(0, 120),
+        avatarUrl: state.profileAvatarDraft || ""
       };
-      await update(ref(db, `users/${state.currentUser.usernameKey}`), patch);
-      state.currentUser = { ...state.currentUser, ...patch };
-      localStorage.setItem(LS_SESSION, JSON.stringify(state.currentUser));
-      $("meLogin").textContent = `@${state.currentUser.username}`;
-      if (state.activeChat?.type === "private" && toKey(state.activeChat.peer) === state.currentUser.usernameKey) {
-        $("presence").textContent = `Статус: ${patch.status || "—"}`;
-      }
-      closeProfileModal();
+      await update(ref(db, `users/${state.user.usernameKey}`), patch);
+      state.user = { ...state.user, ...patch };
+      state.profileUser = { ...state.profileUser, ...patch };
+      localStorage.setItem(LS_SESSION, JSON.stringify(state.user));
+      $("meLogin").textContent = displayNameOf(state.user);
+      renderProfilePage();
     }
 
-    function createActionPanel() {
-      const panel = document.createElement("div");
-      panel.style.position = "fixed";
-      panel.style.right = "16px";
-      panel.style.bottom = "16px";
-      panel.style.display = "none";
-      panel.style.gap = "8px";
-      panel.style.zIndex = "1000";
-
-      const forward = document.createElement("button");
-      forward.className = "subtle-btn";
-      forward.textContent = "Переслать";
-      forward.addEventListener("click", () => forwardSelectedMessage().catch(() => {}));
-
-      const del = document.createElement("button");
-      del.className = "subtle-btn";
-      del.textContent = "Удалить";
-      del.addEventListener("click", () => deleteSelectedMessage().catch(() => {}));
-
-      panel.append(forward, del);
-      document.body.appendChild(panel);
-      return panel;
-    }
-
-    function setActionPanelVisible(visible) {
-      actionPanel.style.display = visible ? "flex" : "none";
-    }
-
-    function messageSelectHandler(messageId) {
-      state.selectedMessageId = state.selectedMessageId === messageId ? null : messageId;
-      highlightSelectedMessage();
-      setActionPanelVisible(Boolean(state.selectedMessageId));
-    }
-
-    function highlightSelectedMessage() {
-      state.messageNodes.forEach((node, id) => {
-        node.style.background = id === state.selectedMessageId ? "var(--bg-soft)" : "transparent";
-        node.style.borderRadius = "8px";
-        node.style.padding = "6px";
+    async function sendFriendRequest(targetKey) {
+      if (!targetKey || targetKey === state.user.usernameKey) return;
+      await update(ref(db), {
+        [`users/${targetKey}/incomingRequests/${state.user.usernameKey}`]: true,
+        [`users/${state.user.usernameKey}/outgoingRequests/${targetKey}`]: true
       });
+      await push(ref(db, `messages/${privateChatId(state.user.username, targetKey)}`), {
+        system: true,
+        text: `@${state.user.username} отправил запрос в друзья`,
+        from: state.user.username,
+        fromKey: state.user.usernameKey,
+        fromName: displayNameOf(state.user),
+        createdAt: Date.now(),
+        forwarded: false,
+        originalSender: ""
+      });
+      await openProfilePageByKey(targetKey);
     }
 
-    function renderSearch(items) {
-      const root = $("searchResults");
-      root.innerHTML = "";
-      if (!items.length) {
-        root.innerHTML = '<div class="ghost">Пользователи/группы не найдены</div>';
-        return;
-      }
+    async function acceptFriendRequest(targetKey) {
+      await update(ref(db), {
+        [`users/${state.user.usernameKey}/incomingRequests/${targetKey}`]: null,
+        [`users/${targetKey}/outgoingRequests/${state.user.usernameKey}`]: null,
+        [`users/${state.user.usernameKey}/friends/${targetKey}`]: true,
+        [`users/${targetKey}/friends/${state.user.usernameKey}`]: true
+      });
+      await openProfilePageByKey(targetKey);
+    }
 
-      items.forEach((entry) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "chat-item";
-        if (entry.type === "group") {
-          btn.innerHTML = `<div class="chat-main"><span class="chat-name">#${esc(entry.name)}</span><span class="chat-time">group</span></div><div class="chat-preview">${esc(entry.description || "Групповой чат")}</div>`;
-          btn.addEventListener("click", () => openGroupDialog(entry));
-        } else {
-          btn.innerHTML = `<div class="chat-main"><span class="chat-name">@${esc(entry.username)}</span><span class="chat-time">${esc(entry.displayName || "user")}</span></div><div class="chat-preview">${esc(entry.status || "Открыть диалог")}</div>`;
-          btn.addEventListener("click", () => openPrivateDialog(entry));
+    async function declineFriendRequest(targetKey) {
+      await update(ref(db), {
+        [`users/${state.user.usernameKey}/incomingRequests/${targetKey}`]: null,
+        [`users/${targetKey}/outgoingRequests/${state.user.usernameKey}`]: null
+      });
+      await openProfilePageByKey(targetKey);
+    }
+
+    // ===== GROUPS =====
+
+    async function openGroupModal() {
+      if (!guardAuthAccess()) return;
+      const friendKeys = Object.keys(state.friends || {});
+      const list = $("groupFriendsList");
+      list.innerHTML = "";
+
+      if (!friendKeys.length) {
+        list.innerHTML = '<div class="ghost">Нет друзей для добавления.</div>';
+      } else {
+        for (const key of friendKeys) {
+          const snap = await get(ref(db, `users/${key}`));
+          if (!snap.exists()) continue;
+          const u = snap.val();
+          const row = document.createElement("label");
+          row.className = "row-flex";
+          row.innerHTML = `<input type="checkbox" value="${esc(key)}" /> <img class="avatar" src="${esc(getAvatar(u.avatarUrl))}" alt="" /> <span>${esc(displayNameOf(u))}</span>`;
+          list.appendChild(row);
         }
-        root.appendChild(btn);
-      });
+      }
+
+      state.groupAvatarDraft = "";
+      $("groupNameInput").value = "";
+      $("groupDescriptionInput").value = "";
+      $("groupAvatarInput").value = "";
+      $("groupModal").style.display = "flex";
     }
 
-    function renderDialogs(dialogs) {
-      const root = $("dialogsList");
-      root.innerHTML = "";
-      if (!dialogs.length) {
-        root.innerHTML = '<div class="ghost">Пока нет диалогов</div>';
+    async function createGroupFromModal() {
+      if (!guardAuthAccess()) return;
+      const name = $("groupNameInput").value.trim().slice(0, 80);
+      if (!name) {
+        alert("Введите название группы");
         return;
       }
 
-      dialogs.forEach((d) => {
-        const item = document.createElement("button");
-        item.type = "button";
-        const activeId = state.activeChat?.type === "group" ? state.activeChat.groupId : state.activeChat?.chatId;
-        item.className = `chat-item ${activeId === (d.groupId || d.chatId) ? "active" : ""}`;
-        const name = d.type === "group" ? `#${d.name}` : `@${d.peer}`;
-        item.innerHTML = `<div class="chat-main"><span class="chat-name">${esc(name)}</span><span class="chat-time">${formatTime(d.lastAt)}</span></div><div class="chat-preview">${esc(d.lastMessage || "Пусто")}</div>`;
-        item.addEventListener("click", () => d.type === "group" ? openGroupDialog(d) : openPrivateDialog(d));
-        root.appendChild(item);
+      const description = $("groupDescriptionInput").value.trim().slice(0, 160);
+      const selected = Array.from($("groupFriendsList").querySelectorAll('input[type="checkbox"]:checked')).map((el) => el.value);
+      const members = { [state.user.usernameKey]: true };
+      selected.forEach((id) => { if (state.friends[id]) members[id] = true; });
+
+      const groupRef = push(ref(db, "groups"));
+      const groupId = groupRef.key;
+      const payload = {
+        name,
+        description,
+        avatarUrl: state.groupAvatarDraft || "",
+        creatorId: state.user.usernameKey,
+        members,
+        createdAt: Date.now()
+      };
+
+      await set(ref(db, `groups/${groupId}`), payload);
+
+      const preview = {
+        type: "group",
+        id: groupId,
+        groupId,
+        name,
+        description,
+        lastMessage: "Группа создана",
+        lastAt: Date.now()
+      };
+      const updates = {};
+      Object.keys(members).forEach((memberId) => {
+        updates[`userChats/${memberId}/${groupId}`] = preview;
       });
+      await update(ref(db), updates);
+      $("groupModal").style.display = "none";
     }
 
-    function buildMessageNode(m) {
-      const own = m.fromKey === state.currentUser.usernameKey;
+    async function openGroupDialog(dialog) {
+      if (!guardAuthAccess()) return;
+      state.activeChat = {
+        type: "group",
+        id: dialog.groupId || dialog.id,
+        name: dialog.name || "Группа"
+      };
+      state.selectedMessageId = null;
+      toggleMessageActionPanel(false);
+      state.hiddenMessages = (await get(ref(db, `hiddenMessages/${state.user.usernameKey}/${activeChatKey()}`))).val() || {};
+      $("chatTitle").textContent = state.activeChat.name;
+      $("chatCode").textContent = `group: ${state.activeChat.id}`;
+      $("deleteChatBtn").disabled = false;
+      watchPresence();
+      watchMessages();
+      pageSwitch("chatPage");
+      if (window.matchMedia("(max-width: 860px)").matches) setMobileState("state-chat");
+      $("messageInput").focus();
+    }
+
+    // ===== MESSAGES =====
+
+    function toggleMessageActionPanel(show) {
+      $("messageActionPanel").style.display = show ? "flex" : "none";
+    }
+
+    function selectMessage(id) {
+      state.selectedMessageId = state.selectedMessageId === id ? null : id;
+      state.messageNodes.forEach((node, key) => {
+        node.classList.toggle("selected", key === state.selectedMessageId);
+      });
+      toggleMessageActionPanel(Boolean(state.selectedMessageId));
+    }
+
+    function getChatDisplayNameFromDialog(d) {
+      return d.type === "group" ? d.name : (d.peerDisplayName || `@${d.peer}`);
+    }
+
+    async function openPrivateDialog(userData) {
+      if (!guardAuthAccess()) return;
+      const peerUsername = userData.peer || userData.username;
+      const peerKey = toKey(peerUsername);
+      const profileSnap = await get(ref(db, `users/${peerKey}`));
+      const peerProfile = profileSnap.exists() ? profileSnap.val() : { username: peerUsername, usernameKey: peerKey, displayName: peerUsername, status: "" };
+
+      const chatId = privateChatId(state.user.username, peerProfile.username);
+      state.activeChat = {
+        type: "private",
+        id: chatId,
+        peerKey,
+        peerUsername: peerProfile.username,
+        peerDisplayName: displayNameOf(peerProfile)
+      };
+      state.selectedMessageId = null;
+      toggleMessageActionPanel(false);
+      state.hiddenMessages = (await get(ref(db, `hiddenMessages/${state.user.usernameKey}/${activeChatKey()}`))).val() || {};
+
+      $("chatTitle").textContent = state.activeChat.peerDisplayName;
+      $("chatCode").textContent = `chat: ${chatId}`;
+      $("deleteChatBtn").disabled = false;
+
+      watchPresence();
+      watchMessages();
+      pageSwitch("chatPage");
+      if (window.matchMedia("(max-width: 860px)").matches) setMobileState("state-chat");
+      $("messageInput").focus();
+    }
+
+    function buildMessageNode(id, m) {
+      const own = m.fromKey === state.user.usernameKey;
       const el = document.createElement("article");
       el.className = `message ${own ? "outgoing" : "incoming"}`;
-      const forwarded = m.forwarded ? `<div class="chat-preview">Переслано от @${esc(m.originalSender || "unknown")}</div>` : "";
-      el.innerHTML = `<div class="message-block"><div class="message-head"><span>${esc(m.fromName || `@${m.from}`)}</span><time>${formatTime(m.createdAt)}</time></div>${forwarded}<div class="message-text">${esc(m.text)}</div></div>`;
+      el.dataset.id = id;
       el.addEventListener("click", (event) => {
         event.stopPropagation();
-        messageSelectHandler(m.id);
+        selectMessage(id);
       });
+      state.messageNodes.set(id, el);
+      patchMessageNode(el, m);
       return el;
     }
 
-    function renderMessages(items) {
+    function patchMessageNode(el, m) {
+      const forwarded = m.forwarded ? `<div class="chat-preview">Переслано от ${esc(m.originalSender || "—")}</div>` : "";
+      const systemClass = m.system ? "system-message" : "";
+      el.innerHTML = `
+        <div class="message-block ${systemClass}">
+          <div class="message-head">
+            <span>${esc(m.fromName || `@${m.from || "system"}`)}</span>
+            <time>${formatTime(m.createdAt)}</time>
+          </div>
+          ${forwarded}
+          <div class="message-text">${esc(m.text || "")}</div>
+        </div>
+      `;
+      el.classList.toggle("selected", state.selectedMessageId === el.dataset.id);
+    }
+
+    function renderMessagesIncremental(rows) {
       const root = $("messages");
-      if (!items.length) {
+      if (!rows.length) {
         root.innerHTML = '<div class="empty">Диалог открыт. Напишите первое сообщение.</div>';
         state.messageNodes.clear();
         return;
       }
+      const visibleRows = rows.filter((row) => !state.hiddenMessages[row.id]);
+      const currentIds = new Set(visibleRows.map((m) => m.id));
 
-      const existingIds = new Set();
-      const frag = document.createDocumentFragment();
-
-      items.forEach((m) => {
-        if (state.hiddenMap[m.id]) return;
-        existingIds.add(m.id);
-        let node = state.messageNodes.get(m.id);
-        if (!node) {
-          node = buildMessageNode(m);
-          state.messageNodes.set(m.id, node);
-        }
-        frag.appendChild(node);
-      });
-
+      // remove deleted nodes only
       state.messageNodes.forEach((node, id) => {
-        if (!existingIds.has(id)) state.messageNodes.delete(id);
+        if (!currentIds.has(id)) {
+          node.remove();
+          state.messageNodes.delete(id);
+        }
       });
 
-      root.innerHTML = "";
-      root.appendChild(frag);
-      highlightSelectedMessage();
+      if (root.querySelector(".empty")) root.innerHTML = "";
+
+      // append/update in order
+      let prevNode = null;
+      visibleRows.forEach((msg) => {
+        let node = state.messageNodes.get(msg.id);
+        if (!node) {
+          node = buildMessageNode(msg.id, msg);
+        } else {
+          patchMessageNode(node, msg);
+        }
+
+        if (!node.parentElement) {
+          root.appendChild(node);
+        } else if (prevNode && node.previousSibling !== prevNode) {
+          root.insertBefore(node, prevNode.nextSibling);
+        } else if (!prevNode && root.firstChild !== node) {
+          root.insertBefore(node, root.firstChild);
+        }
+        prevNode = node;
+      });
+
       const viewport = $("messageViewport");
-      viewport.scrollTop = viewport.scrollHeight;
+      const nearBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 120;
+      if (nearBottom) viewport.scrollTop = viewport.scrollHeight;
     }
 
-    async function register(login, password) {
-      const usernameKey = toKey(login);
-      const userRef = ref(db, `users/${usernameKey}`);
-      const existsSnap = await get(userRef);
-      if (existsSnap.exists()) throw new Error("Такой логин уже занят.");
-      const passHash = await hashPassword(password);
-      const displayName = $("displayNameInput").value.trim().slice(0, 64) || login;
-
-      await set(userRef, {
-        username: login,
-        usernameKey,
-        displayName,
-        avatarUrl: "",
-        status: "",
-        passHash,
-        createdAt: Date.now(),
-        lastSeen: Date.now()
-      });
-
-      return {
-        username: login,
-        usernameKey,
-        displayName,
-        avatarUrl: "",
-        status: ""
-      };
-    }
-
-    async function login(loginValue, password) {
-      const usernameKey = toKey(loginValue);
-      const userSnap = await get(ref(db, `users/${usernameKey}`));
-      if (!userSnap.exists()) throw new Error("Пользователь не найден.");
-
-      const user = userSnap.val();
-      const passHash = await hashPassword(password);
-      if (user.passHash !== passHash) throw new Error("Неверный пароль.");
-
-      await update(ref(db, `users/${usernameKey}`), { lastSeen: Date.now() });
-      return user;
-    }
-
-    async function beginSession(user) {
-      state.currentUser = user;
-      localStorage.setItem(LS_SESSION, JSON.stringify(user));
-      $("meLogin").textContent = `@${user.username}`;
-      $("authPage").style.display = "none";
-      $("chatPage").style.display = "grid";
-      setMobileState("state-list");
-      await setOnlinePresence();
-      watchDialogs();
-    }
-
-    async function setOnlinePresence() {
-      const pRef = ref(db, `presence/${state.currentUser.usernameKey}`);
-      await set(pRef, {
-        username: state.currentUser.username,
-        displayName: state.currentUser.displayName || state.currentUser.username,
-        status: state.currentUser.status || "",
-        avatarUrl: state.currentUser.avatarUrl || "",
-        online: true,
-        lastSeen: serverTimestamp()
-      });
-      onDisconnect(pRef).update({ online: false, lastSeen: serverTimestamp() });
-    }
-
-    function watchDialogs() {
-      if (unsub.dialogs) unsub.dialogs();
-      unsub.dialogs = onValue(ref(db, `userChats/${state.currentUser.usernameKey}`), (snap) => {
-        state.dialogs = Object.values(snap.val() || {})
-          .filter((x) => !x.hidden)
-          .sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
-        renderDialogs(state.dialogs);
-      });
-    }
-
-    function watchMessages() {
-      if (unsub.messages) unsub.messages();
-      state.messageNodes.clear();
-      const q = query(ref(db, messagePath()), limitToLast(200));
-      unsub.messages = onValue(q, (snap) => {
-        const rows = Object.entries(snap.val() || {})
-          .map(([id, value]) => ({ id, ...value }))
-          .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-        renderMessages(rows);
-      });
-    }
-
-    function watchPresence() {
-      if (unsub.presence) unsub.presence();
-      if (!state.activeChat || state.activeChat.type !== "private") {
-        $("presence").textContent = state.activeChat?.type === "group" ? "Статус: групповой чат" : "Статус: —";
-        return;
-      }
-      unsub.presence = onValue(ref(db, `presence/${toKey(state.activeChat.peer)}`), (snap) => {
-        const online = Boolean(snap.val()?.online);
-        $("presence").textContent = `Статус: ${online ? "онлайн" : "оффлайн"}`;
-      });
-    }
-
-    async function openPrivateDialog(user) {
-      if (!guardAuthAccess()) return;
-      const peer = user.peer || user.username;
-      state.activeChat = {
-        type: "private",
-        peer,
-        chatId: chatIdByUsers(state.currentUser.username, peer)
-      };
-      state.selectedMessageId = null;
-      setActionPanelVisible(false);
-      state.hiddenMap = (await get(ref(db, `hiddenMessages/${state.currentUser.usernameKey}/${activeChatKey()}`))).val() || {};
-      $("chatTitle").textContent = `Диалог с @${peer}`;
-      $("chatCode").textContent = `chat: ${state.activeChat.chatId}`;
-      $("deleteChatBtn").disabled = false;
-      watchPresence();
-      watchMessages();
-      if (window.matchMedia("(max-width: 860px)").matches) setMobileState("state-chat");
-    }
-
-    async function openGroupDialog(group) {
-      if (!guardAuthAccess()) return;
-      state.activeChat = {
-        type: "group",
-        groupId: group.groupId,
-        name: group.name
-      };
-      state.selectedMessageId = null;
-      setActionPanelVisible(false);
-      state.hiddenMap = (await get(ref(db, `hiddenMessages/${state.currentUser.usernameKey}/${activeChatKey()}`))).val() || {};
-      $("chatTitle").textContent = `#${group.name}`;
-      $("chatCode").textContent = `group: ${group.groupId}`;
-      $("deleteChatBtn").disabled = false;
-      watchPresence();
-      watchMessages();
-      if (window.matchMedia("(max-width: 860px)").matches) setMobileState("state-chat");
-    }
-
-    async function sendMessage(text, forwarded = false, originalSender = "") {
+    async function sendMessage(text, meta = {}) {
       if (!guardAuthAccess() || !state.activeChat) return;
       const clean = text.trim();
       if (!clean) return;
@@ -1060,31 +1226,48 @@
       const now = Date.now();
       const payload = {
         text: clean,
-        from: state.currentUser.username,
-        fromKey: state.currentUser.usernameKey,
-        fromName: state.currentUser.displayName || state.currentUser.username,
+        from: state.user.username,
+        fromKey: state.user.usernameKey,
+        fromName: displayNameOf(state.user),
         createdAt: now,
-        forwarded,
-        originalSender
+        forwarded: Boolean(meta.forwarded),
+        originalSender: meta.originalSender || ""
       };
       await push(ref(db, messagePath()), payload);
 
       if (state.activeChat.type === "private") {
-        const chatId = state.activeChat.chatId;
-        const peer = state.activeChat.peer;
+        const mePreview = {
+          type: "private",
+          id: state.activeChat.id,
+          chatId: state.activeChat.id,
+          peer: state.activeChat.peerUsername,
+          peerDisplayName: state.activeChat.peerDisplayName,
+          lastMessage: clean.slice(0, 120),
+          lastAt: now
+        };
+        const peerPreview = {
+          type: "private",
+          id: state.activeChat.id,
+          chatId: state.activeChat.id,
+          peer: state.user.username,
+          peerDisplayName: displayNameOf(state.user),
+          lastMessage: clean.slice(0, 120),
+          lastAt: now
+        };
         await update(ref(db), {
-          [`userChats/${state.currentUser.usernameKey}/${chatId}`]: { type: "private", peer, chatId, lastMessage: clean.slice(0, 120), lastAt: now },
-          [`userChats/${toKey(peer)}/${chatId}`]: { type: "private", peer: state.currentUser.username, chatId, lastMessage: clean.slice(0, 120), lastAt: now },
-          [`users/${state.currentUser.usernameKey}/lastSeen`]: now
+          [`userChats/${state.user.usernameKey}/${state.activeChat.id}`]: mePreview,
+          [`userChats/${state.activeChat.peerKey}/${state.activeChat.id}`]: peerPreview,
+          [`users/${state.user.usernameKey}/lastSeen`]: now
         });
       } else {
-        const groupId = state.activeChat.groupId;
-        const members = (await get(ref(db, `groups/${groupId}/members`))).val() || {};
+        const membersSnap = await get(ref(db, `groups/${state.activeChat.id}/members`));
+        const members = membersSnap.val() || {};
         const batch = {};
         Object.keys(members).forEach((uid) => {
-          batch[`userChats/${uid}/${groupId}`] = {
+          batch[`userChats/${uid}/${state.activeChat.id}`] = {
             type: "group",
-            groupId,
+            id: state.activeChat.id,
+            groupId: state.activeChat.id,
             name: state.activeChat.name,
             lastMessage: clean.slice(0, 120),
             lastAt: now
@@ -1095,65 +1278,172 @@
     }
 
     async function deleteSelectedMessage() {
-      if (!state.selectedMessageId || !state.activeChat) return;
-      const msgSnap = await get(ref(db, `${messagePath()}/${state.selectedMessageId}`));
-      if (!msgSnap.exists()) return;
-      const message = msgSnap.val();
+      if (!state.activeChat || !state.selectedMessageId) return;
+      const targetRef = ref(db, `${messagePath()}/${state.selectedMessageId}`);
+      const snap = await get(targetRef);
+      if (!snap.exists()) return;
+      const msg = snap.val();
 
-      if (message.fromKey === state.currentUser.usernameKey) {
-        const mode = prompt("1 - удалить у себя, 2 - удалить у всех", "1");
-        if (mode === "2") {
-          await remove(ref(db, `${messagePath()}/${state.selectedMessageId}`));
-        } else {
-          await update(ref(db), { [`hiddenMessages/${state.currentUser.usernameKey}/${activeChatKey()}/${state.selectedMessageId}`]: true });
-        }
+      if (msg.fromKey === state.user.usernameKey) {
+        await remove(targetRef);
       } else {
-        await update(ref(db), { [`hiddenMessages/${state.currentUser.usernameKey}/${activeChatKey()}/${state.selectedMessageId}`]: true });
+        await update(ref(db), {
+          [`hiddenMessages/${state.user.usernameKey}/${activeChatKey()}/${state.selectedMessageId}`]: true
+        });
+        state.hiddenMessages[state.selectedMessageId] = true;
+        const node = state.messageNodes.get(state.selectedMessageId);
+        if (node) node.remove();
       }
 
       state.selectedMessageId = null;
-      setActionPanelVisible(false);
+      toggleMessageActionPanel(false);
     }
 
-    async function forwardSelectedMessage() {
+    async function openForwardModal() {
       if (!state.selectedMessageId || !state.activeChat) return;
-      const msgSnap = await get(ref(db, `${messagePath()}/${state.selectedMessageId}`));
-      if (!msgSnap.exists()) return;
-      const msg = msgSnap.val();
-      const targets = state.dialogs.filter((d) => (d.chatId || d.groupId) !== (state.activeChat.chatId || state.activeChat.groupId));
+      const root = $("forwardTargets");
+      root.innerHTML = "";
 
-      if (!targets.length) {
-        alert("Нет доступных чатов для пересылки.");
+      const friendKeys = Object.keys(state.friends || {});
+      for (const key of friendKeys) {
+        const snap = await get(ref(db, `users/${key}`));
+        if (!snap.exists()) continue;
+        const user = snap.val();
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "chat-item";
+        btn.innerHTML = `<div class="row-flex"><img class="avatar" src="${esc(getAvatar(user.avatarUrl))}" alt="" /><div><div class="chat-name">${esc(displayNameOf(user))}</div><div class="chat-preview">@${esc(user.username)}</div></div></div>`;
+        btn.addEventListener("click", async () => {
+          await forwardToPrivate(user);
+          $("forwardModal").style.display = "none";
+        });
+        root.appendChild(btn);
+      }
+
+      const groupsSnap = await get(ref(db, "groups"));
+      Object.entries(groupsSnap.val() || {}).forEach(([id, group]) => {
+        if (!group.members?.[state.user.usernameKey]) return;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "chat-item";
+        btn.innerHTML = `<div class="row-flex"><img class="avatar" src="${esc(getAvatar(group.avatarUrl))}" alt="" /><div><div class="chat-name">${esc(group.name)}</div><div class="chat-preview">Группа</div></div></div>`;
+        btn.addEventListener("click", async () => {
+          await forwardToGroup({ groupId: id, ...group });
+          $("forwardModal").style.display = "none";
+        });
+        root.appendChild(btn);
+      });
+
+      if (!root.children.length) {
+        root.innerHTML = '<div class="ghost">Нет друзей или групп для пересылки.</div>';
+      }
+      $("forwardModal").style.display = "flex";
+    }
+
+    async function forwardToPrivate(user) {
+      const messageSnap = await get(ref(db, `${messagePath()}/${state.selectedMessageId}`));
+      if (!messageSnap.exists()) return;
+      const msg = messageSnap.val();
+      const prevChat = state.activeChat;
+      await openPrivateDialog(user);
+      await sendMessage(msg.text, {
+        forwarded: true,
+        originalSender: msg.fromName || `@${msg.from}`
+      });
+      if (prevChat?.id !== state.activeChat.id) {
+        if (prevChat.type === "group") {
+          await openGroupDialog(prevChat);
+        } else {
+          await openPrivateDialog({ username: prevChat.peerUsername, peer: prevChat.peerUsername });
+        }
+      }
+    }
+
+    async function forwardToGroup(group) {
+      const messageSnap = await get(ref(db, `${messagePath()}/${state.selectedMessageId}`));
+      if (!messageSnap.exists()) return;
+      const msg = messageSnap.val();
+      const prevChat = state.activeChat;
+      await openGroupDialog({ groupId: group.groupId, name: group.name });
+      await sendMessage(msg.text, {
+        forwarded: true,
+        originalSender: msg.fromName || `@${msg.from}`
+      });
+      if (prevChat?.id !== state.activeChat.id) {
+        if (prevChat.type === "group") {
+          await openGroupDialog(prevChat);
+        } else {
+          await openPrivateDialog({ username: prevChat.peerUsername, peer: prevChat.peerUsername });
+        }
+      }
+    }
+
+    // ===== UI CONTROL =====
+
+    function renderSearch(items) {
+      const root = $("searchResults");
+      root.innerHTML = "";
+      if (!items.length) {
+        root.innerHTML = '<div class="ghost">Пользователи/группы не найдены</div>';
         return;
       }
 
-      const menu = targets.map((t, i) => `${i + 1}. ${t.type === "group" ? `#${t.name}` : `@${t.peer}`}`).join("\n");
-      const index = Number(prompt(`Куда переслать?\n${menu}`, "1")) - 1;
-      if (!Number.isInteger(index) || index < 0 || index >= targets.length) return;
+      items.forEach((item) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "chat-item";
 
-      const target = targets[index];
-      if (target.type === "group") {
-        await openGroupDialog(target);
-      } else {
-        await openPrivateDialog(target);
-      }
-      await sendMessage(msg.text, true, msg.fromName || msg.from);
+        if (item.type === "group") {
+          btn.innerHTML = `<div class="row-flex"><img class="avatar" src="${esc(getAvatar(item.avatarUrl))}" alt="" /><div><div class="chat-name">${esc(item.name)}</div><div class="chat-preview">${esc(item.description || "Групповой чат")}</div></div></div>`;
+          btn.addEventListener("click", () => openGroupDialog(item));
+        } else {
+          btn.innerHTML = `<div class="row-flex"><img class="avatar" src="${esc(getAvatar(item.avatarUrl))}" alt="" /><div><div class="chat-name">${esc(displayNameOf(item))}</div><div class="chat-preview">@${esc(item.username)} · ${esc(item.status || "")}</div></div></div>`;
+          btn.addEventListener("click", () => openPrivateDialog(item));
+          btn.addEventListener("dblclick", () => openProfilePageByKey(item.usernameKey).catch(() => {}));
+        }
+
+        root.appendChild(btn);
+      });
     }
 
-    async function deleteChatWithActive() {
-      if (!state.activeChat || !guardAuthAccess()) return;
-      const approved = confirm("Скрыть чат только для вас?");
-      if (!approved) return;
-      const key = state.activeChat.type === "group" ? state.activeChat.groupId : state.activeChat.chatId;
-      await update(ref(db, `userChats/${state.currentUser.usernameKey}/${key}`), { hidden: true });
-      state.activeChat = null;
-      state.selectedMessageId = null;
-      $("chatTitle").textContent = "Выберите диалог";
-      $("presence").textContent = "Статус: —";
-      $("chatCode").textContent = "chat: ---";
-      $("deleteChatBtn").disabled = true;
-      $("messages").innerHTML = '<div class="empty">Чат скрыт. Выберите другой диалог.</div>';
-      setActionPanelVisible(false);
+    function renderDialogs() {
+      const root = $("dialogsList");
+      root.innerHTML = "";
+      if (!state.dialogs.length) {
+        root.innerHTML = '<div class="ghost">Пока нет диалогов</div>';
+        return;
+      }
+
+      state.dialogs.forEach((d) => {
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = `chat-item ${state.activeChat?.id === d.id ? "active" : ""}`;
+        const name = getChatDisplayNameFromDialog(d);
+        const avatar = getAvatar(d.avatarUrl);
+
+        item.innerHTML = `
+          <div class="row-flex">
+            <img class="avatar" src="${esc(avatar)}" alt="" />
+            <div style="min-width:0; flex:1;">
+              <div class="chat-main">
+                <span class="chat-name">${esc(name)}</span>
+                <span class="chat-time">${formatTime(d.lastAt)}</span>
+              </div>
+              <div class="chat-preview">${esc(d.lastMessage || "Пусто")}</div>
+            </div>
+          </div>
+        `;
+
+        item.addEventListener("click", () => {
+          if (d.type === "group") {
+            openGroupDialog(d).catch(() => {});
+          } else {
+            openPrivateDialog({ username: d.peer, peer: d.peer }).catch(() => {});
+          }
+        });
+
+        root.appendChild(item);
+      });
     }
 
     async function searchAll(prefix) {
@@ -1167,95 +1457,210 @@
       const usersQuery = query(ref(db, "users"), orderByChild("usernameKey"), startAt(term), endAt(`${term}\uf8ff`));
       const usersSnap = await get(usersQuery);
       const users = Object.values(usersSnap.val() || {})
-        .filter((u) => u.usernameKey !== state.currentUser.usernameKey)
-        .slice(0, 20)
-        .map((u) => ({ ...u, type: "user" }));
+        .filter((u) => u.usernameKey !== state.user.usernameKey)
+        .map((u) => ({ ...u, type: "user" }))
+        .slice(0, 20);
 
       const groupsSnap = await get(ref(db, "groups"));
       const groups = Object.entries(groupsSnap.val() || {})
-        .map(([groupId, value]) => ({ groupId, ...value, type: "group" }))
-        .filter((g) => g.members?.[state.currentUser.usernameKey])
-        .filter((g) => toKey(g.name || "").startsWith(term))
+        .map(([groupId, value]) => ({ ...value, type: "group", id: groupId, groupId }))
+        .filter((g) => g.members?.[state.user.usernameKey])
+        .filter((g) => toKey(g.name || "").includes(term))
         .slice(0, 20);
 
       renderSearch([...users, ...groups]);
     }
 
-    async function createGroupPrompt() {
-      if (!guardAuthAccess()) return;
-      const name = prompt("Название группы");
-      if (!name) return;
-      const description = prompt("Описание", "") || "";
-      const avatarUrl = prompt("Avatar URL (опционально)", "") || "";
-      const membersInput = prompt("Участники (логины через запятую)", "") || "";
-      const usernames = membersInput.split(",").map((x) => toKey(x)).filter(Boolean);
+    async function watchCurrentUser() {
+      if (unsub.user) unsub.user();
+      unsub.user = onValue(ref(db, `users/${state.user.usernameKey}`), (snap) => {
+        if (!snap.exists()) return;
+        const fresh = snap.val();
+        state.user = { ...state.user, ...fresh };
+        refreshLocalFriendState(state.user);
+        $("meLogin").textContent = displayNameOf(state.user);
+      });
+    }
 
-      const members = { [state.currentUser.usernameKey]: true };
-      for (const usernameKey of usernames) {
-        const userSnap = await get(ref(db, `users/${usernameKey}`));
-        if (userSnap.exists()) members[usernameKey] = true;
+    function watchDialogs() {
+      if (unsub.dialogs) unsub.dialogs();
+      unsub.dialogs = onValue(ref(db, `userChats/${state.user.usernameKey}`), async (snap) => {
+        const raw = Object.values(snap.val() || {}).filter((d) => !d.hidden);
+        const resolved = [];
+
+        for (const d of raw) {
+          if (d.type === "group") {
+            const groupSnap = await get(ref(db, `groups/${d.groupId || d.id}`));
+            const group = groupSnap.val() || {};
+            resolved.push({
+              ...d,
+              type: "group",
+              id: d.groupId || d.id,
+              groupId: d.groupId || d.id,
+              name: group.name || d.name || "Группа",
+              avatarUrl: group.avatarUrl || d.avatarUrl || ""
+            });
+          } else {
+            const peerKey = toKey(d.peer || "");
+            const peerSnap = await get(ref(db, `users/${peerKey}`));
+            const peer = peerSnap.val() || { username: d.peer, displayName: d.peer };
+            resolved.push({
+              ...d,
+              type: "private",
+              id: d.chatId || d.id,
+              chatId: d.chatId || d.id,
+              peer: peer.username,
+              peerDisplayName: displayNameOf(peer),
+              avatarUrl: peer.avatarUrl || ""
+            });
+          }
+        }
+
+        state.dialogs = resolved.sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
+        renderDialogs();
+      });
+    }
+
+    function watchMessages() {
+      if (unsub.messages) unsub.messages();
+      state.messageNodes.clear();
+      $("messages").innerHTML = '<div class="empty">Загрузка сообщений...</div>';
+
+      const q = query(ref(db, messagePath()), limitToLast(200));
+      unsub.messages = onValue(q, (snap) => {
+        const rows = Object.entries(snap.val() || {})
+          .map(([id, value]) => ({ id, ...value }))
+          .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+        renderMessagesIncremental(rows);
+      });
+    }
+
+    function watchPresence() {
+      if (unsub.presence) unsub.presence();
+      if (!state.activeChat) {
+        $("presence").textContent = "Статус: —";
+        return;
+      }
+      if (state.activeChat.type === "group") {
+        $("presence").textContent = "Статус: групповой чат";
+        return;
       }
 
-      const groupRef = push(ref(db, "groups"));
-      const groupId = groupRef.key;
-      const payload = {
-        name: name.trim().slice(0, 80),
-        nameKey: toKey(name),
-        description: description.trim().slice(0, 160),
-        avatarUrl: avatarUrl.trim(),
-        creatorId: state.currentUser.usernameKey,
-        members,
-        createdAt: Date.now()
-      };
-      await set(ref(db, `groups/${groupId}`), payload);
-
-      const now = Date.now();
-      const preview = {
-        type: "group",
-        groupId,
-        name: payload.name,
-        description: payload.description,
-        lastMessage: "Группа создана",
-        lastAt: now
-      };
-      const batch = {};
-      Object.keys(members).forEach((uid) => {
-        batch[`userChats/${uid}/${groupId}`] = preview;
+      unsub.presence = onValue(ref(db, `presence/${state.activeChat.peerKey}`), (snap) => {
+        const value = snap.val() || {};
+        const online = Boolean(value.online);
+        $("presence").textContent = online ? "Статус: онлайн" : `Был(а): ${formatLastSeen(value.lastSeen)}`;
       });
-      await update(ref(db), batch);
-      alert("Группа создана. Откройте её через поиск.");
+    }
+
+    async function setOnlinePresence() {
+      const pRef = ref(db, `presence/${state.user.usernameKey}`);
+      await set(pRef, {
+        username: state.user.username,
+        displayName: state.user.displayName || state.user.username,
+        online: true,
+        lastSeen: serverTimestamp()
+      });
+      onDisconnect(pRef).update({ online: false, lastSeen: serverTimestamp() });
+    }
+
+    async function register(username, password) {
+      const usernameKey = toKey(username);
+      const userRef = ref(db, `users/${usernameKey}`);
+      if ((await get(userRef)).exists()) throw new Error("Такой логин уже занят.");
+
+      const passHash = await hashPassword(password);
+      const displayName = $("displayNameInput").value.trim().slice(0, 64) || username;
+
+      const payload = {
+        username,
+        usernameKey,
+        displayName,
+        avatarUrl: "",
+        status: "",
+        friends: {},
+        incomingRequests: {},
+        outgoingRequests: {},
+        passHash,
+        createdAt: Date.now(),
+        lastSeen: Date.now()
+      };
+
+      await set(userRef, payload);
+      return payload;
+    }
+
+    async function login(username, password) {
+      const usernameKey = toKey(username);
+      const snap = await get(ref(db, `users/${usernameKey}`));
+      if (!snap.exists()) throw new Error("Пользователь не найден.");
+      const user = snap.val();
+      const passHash = await hashPassword(password);
+      if (user.passHash !== passHash) throw new Error("Неверный пароль.");
+      await update(ref(db, `users/${usernameKey}`), { lastSeen: Date.now() });
+      return user;
+    }
+
+    async function beginSession(user) {
+      state.user = user;
+      refreshLocalFriendState(user);
+      localStorage.setItem(LS_SESSION, JSON.stringify(user));
+      $("meLogin").textContent = displayNameOf(user);
+      pageSwitch("chatPage");
+      setMobileState("state-list");
+      await setOnlinePresence();
+      watchCurrentUser();
+      watchDialogs();
+    }
+
+    async function deleteCurrentChat() {
+      if (!state.activeChat || !guardAuthAccess()) return;
+      const ok = confirm("Скрыть чат только для вас?");
+      if (!ok) return;
+
+      await update(ref(db, `userChats/${state.user.usernameKey}/${state.activeChat.id}`), { hidden: true });
+      state.activeChat = null;
+      state.selectedMessageId = null;
+      $("chatTitle").textContent = "Выберите диалог";
+      $("chatCode").textContent = "chat: ---";
+      $("presence").textContent = "Статус: —";
+      $("deleteChatBtn").disabled = true;
+      $("messages").innerHTML = '<div class="empty">Чат скрыт. Выберите другой диалог.</div>';
+      toggleMessageActionPanel(false);
     }
 
     async function logout() {
-      if (state.currentUser?.usernameKey) {
-        await update(ref(db, `presence/${state.currentUser.usernameKey}`), { online: false, lastSeen: serverTimestamp() });
+      if (state.user?.usernameKey) {
+        await update(ref(db, `presence/${state.user.usernameKey}`), { online: false, lastSeen: serverTimestamp() });
       }
-      if (unsub.dialogs) unsub.dialogs();
-      if (unsub.messages) unsub.messages();
-      if (unsub.presence) unsub.presence();
-      state.currentUser = null;
+      Object.values(unsub).forEach((fn) => { if (typeof fn === "function") fn(); });
+      state.user = null;
       state.activeChat = null;
       state.selectedMessageId = null;
+      state.profileUser = null;
+      state.friends = {};
+      state.requests = { incoming: {}, outgoing: {} };
+      state.groups = [];
+      state.hiddenMessages = {};
+      state.dialogs = [];
       clearAuthArtifacts();
-      $("chatPage").style.display = "none";
-      $("authPage").style.display = "grid";
       $("dialogsList").innerHTML = "";
       $("searchResults").innerHTML = "";
       $("messageInput").value = "";
-      setActionPanelVisible(false);
+      toggleMessageActionPanel(false);
+      pageSwitch("authPage");
     }
 
     async function restoreSession() {
       const raw = localStorage.getItem(LS_SESSION);
       if (!raw) return;
       try {
-        const session = JSON.parse(raw);
-        if (!session?.usernameKey) return;
-        const snap = await get(ref(db, `users/${session.usernameKey}`));
-        clearAuthArtifacts();
+        const parsed = JSON.parse(raw);
+        if (!parsed?.usernameKey) return;
+        const snap = await get(ref(db, `users/${parsed.usernameKey}`));
         if (snap.exists()) {
           const saved = snap.val();
-          $("usernameInput").value = String(saved.username || "").trim();
+          $("usernameInput").value = saved.username || "";
           $("passwordInput").value = "";
           setStatus("Сессия найдена. Введите пароль для входа.");
         }
@@ -1267,30 +1672,15 @@
     function bindEvents() {
       $("loginTab").addEventListener("click", () => setAuthMode("login"));
       $("registerTab").addEventListener("click", () => setAuthMode("register"));
-      $("meLogin").addEventListener("click", () => editMyProfile().catch(() => {}));
-      $("chatTitle").addEventListener("click", async () => {
-        if (!state.activeChat) return;
-        if (state.activeChat.type === "private") {
-          const snap = await get(ref(db, `users/${toKey(state.activeChat.peer)}`));
-          if (snap.exists()) openProfile(snap.val(), false);
-        } else {
-          const g = await get(ref(db, `groups/${state.activeChat.groupId}`));
-          if (g.exists()) openProfile({ username: `group:${state.activeChat.groupId}`, displayName: g.val().name, status: g.val().description || "", avatarUrl: g.val().avatarUrl || "", lastSeen: g.val().createdAt }, false);
-        }
-      });
-      $("profileCloseBtn").addEventListener("click", closeProfileModal);
-      $("profileSaveBtn").addEventListener("click", () => saveProfileFromModal().catch(() => {}));
-      $("profileModalBackdrop").addEventListener("click", (event) => {
-        if (event.target.id === "profileModalBackdrop") closeProfileModal();
-      });
 
-      $("authForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
+      $("authForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
         if (isAuthSubmitting) return;
-        const loginValue = $("usernameInput").value.trim();
+
+        const username = $("usernameInput").value.trim();
         const password = $("passwordInput").value;
 
-        if (!isValidLogin(loginValue)) {
+        if (!isValidLogin(username)) {
           setStatus("Логин: 3-24 символа, только A-Z, 0-9, _, ., -", true);
           return;
         }
@@ -1306,26 +1696,27 @@
         try {
           setAuthLoading(true);
           setStatus(state.mode === "login" ? "Выполняется вход..." : "Выполняется регистрация...");
-          const user = state.mode === "login" ? await login(loginValue, password) : await register(loginValue, password);
-          setStatus("Успешно.");
+          const user = state.mode === "login" ? await login(username, password) : await register(username, password);
           await beginSession(user);
-        } catch (err) {
-          setStatus(err?.message || "Ошибка авторизации.", true);
+          setStatus("Успешно.");
+        } catch (error) {
+          setStatus(error?.message || "Ошибка авторизации.", true);
         } finally {
           setAuthLoading(false);
         }
       });
 
-      let timer = null;
+      let searchTimer = null;
       $("searchInput").addEventListener("input", () => {
-        clearTimeout(timer);
-        const value = $("searchInput").value;
-        timer = setTimeout(() => { if (state.currentUser) searchAll(value).catch(() => renderSearch([])); }, 220);
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+          if (state.user) searchAll($("searchInput").value).catch(() => renderSearch([]));
+        }, 220);
       });
 
-      $("composer").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        if (!state.currentUser || !state.activeChat || isSendingMessage) return;
+      $("composer").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!state.user || !state.activeChat || isSendingMessage) return;
         const input = $("messageInput");
         const text = input.value;
         input.value = "";
@@ -1344,28 +1735,78 @@
         }
       });
 
+      $("meLogin").addEventListener("click", () => {
+        if (!state.user) return;
+        state.profileUser = { ...state.user };
+        renderProfilePage();
+        pageSwitch("profilePage");
+      });
+
+      $("chatTitle").addEventListener("click", () => {
+        if (!state.activeChat || state.activeChat.type !== "private") return;
+        openProfilePageByKey(state.activeChat.peerKey).catch(() => {});
+      });
+
+      $("profileBackBtn").addEventListener("click", () => pageSwitch("chatPage"));
+      $("profileSaveBtn").addEventListener("click", () => saveMyProfile().catch(() => {}));
+      $("profileAvatarInput").addEventListener("change", async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        state.profileAvatarDraft = await fileToSquareBase64(file);
+        $("profileAvatar").src = getAvatar(state.profileAvatarDraft);
+      });
+
+      $("profileAddFriendBtn").addEventListener("click", () => {
+        const target = toKey(state.profileUser?.username);
+        sendFriendRequest(target).catch(() => {});
+      });
+      $("profileAcceptBtn").addEventListener("click", () => {
+        const target = toKey(state.profileUser?.username);
+        acceptFriendRequest(target).catch(() => {});
+      });
+      $("profileDeclineBtn").addEventListener("click", () => {
+        const target = toKey(state.profileUser?.username);
+        declineFriendRequest(target).catch(() => {});
+      });
+      $("profileMessageBtn").addEventListener("click", () => {
+        if (!state.profileUser) return;
+        openPrivateDialog(state.profileUser).catch(() => {});
+      });
+
+      $("createGroupBtn").addEventListener("click", () => openGroupModal().catch(() => {}));
+      $("groupCancelBtn").addEventListener("click", () => { $("groupModal").style.display = "none"; });
+      $("groupCreateBtn").addEventListener("click", () => createGroupFromModal().catch(() => {}));
+      $("groupAvatarInput").addEventListener("change", async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        state.groupAvatarDraft = await fileToSquareBase64(file);
+      });
+
+      $("forwardActionBtn").addEventListener("click", () => openForwardModal().catch(() => {}));
+      $("deleteActionBtn").addEventListener("click", () => deleteSelectedMessage().catch(() => {}));
+      $("forwardCloseBtn").addEventListener("click", () => { $("forwardModal").style.display = "none"; });
+
       $("logoutBtn").addEventListener("click", () => logout().catch(() => {}));
-      $("deleteChatBtn").addEventListener("click", () => deleteChatWithActive().catch(() => {}));
+      $("deleteChatBtn").addEventListener("click", () => deleteCurrentChat().catch(() => {}));
       $("mobileBack").addEventListener("click", () => setMobileState("state-list"));
 
       $("messageViewport").addEventListener("click", () => {
         state.selectedMessageId = null;
-        highlightSelectedMessage();
-        setActionPanelVisible(false);
+        state.messageNodes.forEach((node) => node.classList.remove("selected"));
+        toggleMessageActionPanel(false);
       });
 
-      window.addEventListener("keydown", (event) => {
-        if (event.ctrlKey && event.key.toLowerCase() === "g") {
-          event.preventDefault();
-          createGroupPrompt().catch(() => {});
-        }
+      ["forwardModal", "groupModal"].forEach((id) => {
+        $(id).addEventListener("click", (event) => {
+          if (event.target.id === id) $(id).style.display = "none";
+        });
       });
     }
 
     function init() {
-      guardAuthAccess();
-      bindEvents();
+      pageSwitch("authPage");
       setAuthMode("login");
+      bindEvents();
       restoreSession().catch(() => {});
     }
 
