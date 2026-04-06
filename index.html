@@ -392,6 +392,38 @@
 
     .mobile-back { display: none; }
 
+
+    .profile-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1200;
+      padding: 16px;
+    }
+
+    .profile-modal {
+      width: min(100%, 420px);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg);
+      padding: 16px;
+    }
+
+    .profile-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .profile-actions {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
     @media (max-width: 860px) {
       #chatPage {
         grid-template-columns: 1fr;
@@ -460,6 +492,11 @@
           <input class="input" id="usernameInput" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_.\-]{3,24}" placeholder="Например: max_user" />
         </div>
 
+        <div class="field" id="displayNameField" style="display:none;">
+          <label for="displayNameInput">Имя</label>
+          <input class="input" id="displayNameInput" maxlength="64" placeholder="Ваше имя" />
+        </div>
+
         <div class="field">
           <label for="passwordInput">Пароль</label>
           <input class="input" id="passwordInput" required type="password" minlength="6" maxlength="64" placeholder="Минимум 6 символов" />
@@ -520,6 +557,36 @@
       </form>
     </main>
   </section>
+
+
+
+  <div id="profileModalBackdrop" class="profile-modal-backdrop" role="dialog" aria-modal="true">
+    <div class="profile-modal">
+      <h3 id="profileModalTitle">Профиль</h3>
+      <div class="profile-grid">
+        <div class="field">
+          <label for="profileLogin">Логин</label>
+          <input class="input" id="profileLogin" readonly />
+        </div>
+        <div class="field">
+          <label for="profileDisplayName">Имя</label>
+          <input class="input" id="profileDisplayName" maxlength="64" />
+        </div>
+        <div class="field">
+          <label for="profileStatus">Статус</label>
+          <input class="input" id="profileStatus" maxlength="120" />
+        </div>
+        <div class="field">
+          <label for="profileAvatarUrl">Avatar URL</label>
+          <input class="input" id="profileAvatarUrl" maxlength="500" />
+        </div>
+      </div>
+      <div class="profile-actions">
+        <button type="button" id="profileCloseBtn" class="subtle-btn">Закрыть</button>
+        <button type="button" id="profileSaveBtn" class="primary-btn" style="width:auto; min-height:40px; margin-top:0;">Сохранить</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
@@ -659,6 +726,8 @@
       $("loginTab").classList.toggle("active", state.mode === "login");
       $("registerTab").classList.toggle("active", state.mode === "register");
       $("authSubmit").textContent = state.mode === "login" ? "Войти" : "Зарегистрироваться";
+      $("displayNameField").style.display = state.mode === "register" ? "block" : "none";
+      $("displayNameInput").required = state.mode === "register";
       setStatus(state.mode === "login" ? "Режим входа." : "Режим регистрации.");
     }
 
@@ -675,38 +744,45 @@
       root.classList.add(value);
     }
 
-    function openProfile(user) {
+    function openProfile(user, editable = false) {
       if (!user) return;
-      const info = [
-        `@${user.username}`,
-        `Имя: ${user.displayName || "—"}`,
-        `Статус: ${user.status || "—"}`,
-        `lastSeen: ${user.lastSeen ? new Date(user.lastSeen).toLocaleString("ru-RU") : "—"}`
-      ].join("\n");
-      alert(info);
+      $("profileModalTitle").textContent = editable ? "Мой профиль" : "Профиль пользователя";
+      $("profileLogin").value = `@${user.username || "unknown"}`;
+      $("profileDisplayName").value = user.displayName || user.username || "";
+      $("profileStatus").value = user.status || "";
+      $("profileAvatarUrl").value = user.avatarUrl || "";
+      $("profileDisplayName").readOnly = !editable;
+      $("profileStatus").readOnly = !editable;
+      $("profileAvatarUrl").readOnly = !editable;
+      $("profileSaveBtn").style.display = editable ? "inline-flex" : "none";
+      $("profileModalBackdrop").style.display = "flex";
+    }
+
+    function closeProfileModal() {
+      $("profileModalBackdrop").style.display = "none";
     }
 
     async function editMyProfile() {
       if (!guardAuthAccess()) return;
-      const current = state.currentUser;
-      const displayName = prompt("Ваше имя", current.displayName || current.username);
-      if (displayName === null) return;
-      const status = prompt("Ваш статус", current.status || "");
-      if (status === null) return;
-      const avatarUrl = prompt("Avatar URL (опционально)", current.avatarUrl || "");
-      if (avatarUrl === null) return;
+      openProfile(state.currentUser, true);
+    }
 
+    async function saveProfileFromModal() {
+      if (!guardAuthAccess()) return;
       const patch = {
-        displayName: displayName.trim().slice(0, 64) || current.username,
-        status: status.trim().slice(0, 120),
-        avatarUrl: avatarUrl.trim(),
+        displayName: $("profileDisplayName").value.trim().slice(0, 64) || state.currentUser.username,
+        status: $("profileStatus").value.trim().slice(0, 120),
+        avatarUrl: $("profileAvatarUrl").value.trim().slice(0, 500),
         lastSeen: Date.now()
       };
-      await update(ref(db, `users/${current.usernameKey}`), patch);
+      await update(ref(db, `users/${state.currentUser.usernameKey}`), patch);
       state.currentUser = { ...state.currentUser, ...patch };
       localStorage.setItem(LS_SESSION, JSON.stringify(state.currentUser));
       $("meLogin").textContent = `@${state.currentUser.username}`;
-      $("presence").textContent = `Статус: ${state.currentUser.status || "—"}`;
+      if (state.activeChat?.type === "private" && toKey(state.activeChat.peer) === state.currentUser.usernameKey) {
+        $("presence").textContent = `Статус: ${patch.status || "—"}`;
+      }
+      closeProfileModal();
     }
 
     function createActionPanel() {
@@ -846,17 +922,14 @@
       const existsSnap = await get(userRef);
       if (existsSnap.exists()) throw new Error("Такой логин уже занят.");
       const passHash = await hashPassword(password);
-
-      const displayName = prompt("Ваше имя", login) || login;
-      const status = prompt("Ваш статус", "") || "";
-      const avatarUrl = prompt("Avatar URL (опционально)", "") || "";
+      const displayName = $("displayNameInput").value.trim().slice(0, 64) || login;
 
       await set(userRef, {
         username: login,
         usernameKey,
-        displayName: displayName.trim().slice(0, 64) || login,
-        avatarUrl: avatarUrl.trim(),
-        status: status.trim().slice(0, 120),
+        displayName,
+        avatarUrl: "",
+        status: "",
         passHash,
         createdAt: Date.now(),
         lastSeen: Date.now()
@@ -865,9 +938,9 @@
       return {
         username: login,
         usernameKey,
-        displayName: displayName.trim().slice(0, 64) || login,
-        avatarUrl: avatarUrl.trim(),
-        status: status.trim().slice(0, 120)
+        displayName,
+        avatarUrl: "",
+        status: ""
       };
     }
 
@@ -1196,9 +1269,19 @@
       $("registerTab").addEventListener("click", () => setAuthMode("register"));
       $("meLogin").addEventListener("click", () => editMyProfile().catch(() => {}));
       $("chatTitle").addEventListener("click", async () => {
-        if (!state.activeChat || state.activeChat.type !== "private") return;
-        const snap = await get(ref(db, `users/${toKey(state.activeChat.peer)}`));
-        if (snap.exists()) openProfile(snap.val());
+        if (!state.activeChat) return;
+        if (state.activeChat.type === "private") {
+          const snap = await get(ref(db, `users/${toKey(state.activeChat.peer)}`));
+          if (snap.exists()) openProfile(snap.val(), false);
+        } else {
+          const g = await get(ref(db, `groups/${state.activeChat.groupId}`));
+          if (g.exists()) openProfile({ username: `group:${state.activeChat.groupId}`, displayName: g.val().name, status: g.val().description || "", avatarUrl: g.val().avatarUrl || "", lastSeen: g.val().createdAt }, false);
+        }
+      });
+      $("profileCloseBtn").addEventListener("click", closeProfileModal);
+      $("profileSaveBtn").addEventListener("click", () => saveProfileFromModal().catch(() => {}));
+      $("profileModalBackdrop").addEventListener("click", (event) => {
+        if (event.target.id === "profileModalBackdrop") closeProfileModal();
       });
 
       $("authForm").addEventListener("submit", async (e) => {
@@ -1213,6 +1296,10 @@
         }
         if (password.length < 6) {
           setStatus("Пароль должен быть не короче 6 символов.", true);
+          return;
+        }
+        if (state.mode === "register" && !$("displayNameInput").value.trim()) {
+          setStatus("Укажите имя для регистрации.", true);
           return;
         }
 
@@ -1278,6 +1365,7 @@
     function init() {
       guardAuthAccess();
       bindEvents();
+      setAuthMode("login");
       restoreSession().catch(() => {});
     }
 
