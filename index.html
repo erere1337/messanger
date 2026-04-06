@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Мессенджер</title>
+  <title>Messenger</title>
   <style>
     :root {
       --bg: #ffffff;
@@ -12,535 +12,144 @@
       --text: #111111;
       --muted: #787774;
       --border: #eaeaea;
-      --accent: #dfeee5;
-      --accent-strong: #111111;
-      --tap: 46px;
-      --radius-sm: 8px;
-      --radius: 12px;
+      --highlight: #eef4ff;
+      --radius: 10px;
+      --tap: 44px;
       --transition: 180ms ease;
     }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    html, body {
-      width: 100%;
-      min-height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: "SF Pro Text", "Geist", "Helvetica Neue", Arial, sans-serif;
-    }
-
-    body { overflow: hidden; }
-
-    button, input, textarea {
-      font: inherit;
-      color: inherit;
-    }
-
-    button {
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      background: var(--bg);
-      cursor: pointer;
-      transition: background var(--transition), transform var(--transition), opacity var(--transition);
-    }
-
-    button:hover { background: var(--bg-soft); }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; font-family: "SF Pro Text", "Geist", "Helvetica Neue", Arial, sans-serif; background: var(--bg); color: var(--text); }
+    button, input, textarea { font: inherit; }
+    .page-auth { min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: var(--bg-soft); }
+    .auth-card { width: min(100%, 460px); background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; }
+    .auth-card h1 { margin: 0 0 14px; font-size: 1.5rem; }
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .tab, .btn-ghost, .btn-primary { min-height: var(--tap); border-radius: 8px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; transition: background var(--transition), transform var(--transition); }
+    .btn-primary { border-color: #111; background: #111; color: #fff; }
+    button:hover { background: var(--surface); }
+    .btn-primary:hover { background: #252525; }
     button:active { transform: scale(0.98); }
-    button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
-
-    #authPage {
-      min-height: 100dvh;
-      display: grid;
-      place-items: center;
-      padding: 20px;
-      background: var(--bg-soft);
-    }
-
-    .auth-card {
-      width: min(100%, 420px);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      background: var(--bg);
-      padding: 28px;
-    }
-
-    .auth-title {
-      font-size: 1.5rem;
-      line-height: 1.2;
-      margin-bottom: 18px;
-      letter-spacing: -0.02em;
-    }
-
-    .tabs {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 14px;
-    }
-
-    .tab {
-      min-height: var(--tap);
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border);
-      background: var(--bg);
-      font-weight: 500;
-    }
-
-    .tab.active {
-      background: var(--bg-soft);
-      border-color: #d6d6d6;
-    }
-
-    .field { margin-top: 12px; }
-
-    .field label {
-      display: block;
-      color: var(--muted);
-      font-size: .76rem;
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-
-    .input {
-      width: 100%;
-      min-height: var(--tap);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      background: var(--bg);
-      padding: 11px 12px;
-      outline: none;
-      transition: border-color var(--transition), background var(--transition);
-    }
-
-    .input::placeholder { color: var(--muted); }
-    .input:focus {
-      border-color: #d5d5d5;
-      background: var(--surface);
-    }
-
-    .primary-btn {
-      width: 100%;
-      min-height: var(--tap);
-      margin-top: 14px;
-      border: 1px solid #111111;
-      background: #111111;
-      color: #ffffff;
-      border-radius: 6px;
-      font-weight: 500;
-    }
-
-    .primary-btn:hover { background: #202020; }
-
-    #authStatus {
-      min-height: 20px;
-      margin-top: 12px;
-      color: var(--muted);
-      font-size: 13px;
-      line-height: 1.4;
-    }
-
-    #authStatus.error { color: #b3261e; }
-
-    #chatPage {
-      display: none;
-      height: 100dvh;
-      grid-template-columns: minmax(270px, 340px) 1fr;
-      background: var(--bg);
-    }
-
-    .sidebar {
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-      background: var(--bg);
-    }
-
-    .sidebar-head,
-    .sidebar-search,
-    .sidebar-actions {
-      padding: 14px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .profile-login { font-size: 1.05rem; font-weight: 600; }
-    .profile-sub { font-size: .8rem; color: var(--muted); margin-top: 3px; }
-
-    .list {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .chat-item {
-      width: 100%;
-      text-align: left;
-      padding: 10px 12px;
-      min-height: var(--tap);
-      border: 0;
-      border-radius: 10px;
-      background: transparent;
-      border-left: 2px solid transparent;
-    }
-
-    .chat-item:hover { background: var(--surface); }
-
-    .chat-item.active {
-      background: var(--bg-soft);
-      border-left-color: #b6d8c5;
-    }
-
-    .chat-main {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 10px;
-    }
-
-    .chat-name { font-weight: 500; font-size: .95rem; }
-    .chat-time { font-size: .73rem; color: var(--muted); white-space: nowrap; }
-    .chat-preview {
-      margin-top: 4px;
-      font-size: .82rem;
-      color: var(--muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .ghost {
-      color: var(--muted);
-      font-size: .84rem;
-      padding: 10px 12px;
-    }
-
-    .sidebar-actions .danger,
-    .danger {
-      min-height: var(--tap);
-      width: 100%;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      color: #6b1a16;
-    }
-
-    .chat-view {
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      height: 100dvh;
-    }
-
-    .chat-header {
-      min-height: 74px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 18px;
-      gap: 12px;
-      background: var(--bg);
-    }
-
-    .chat-title {
-      font-size: 1.22rem;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      line-height: 1.1;
-    }
-
-    .chat-meta {
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: .82rem;
-    }
-
-    .header-controls {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
-    }
-
-    .menu-btn,
-    .subtle-btn {
-      min-height: var(--tap);
-      padding: 8px 12px;
-      width: auto;
-      background: var(--bg);
-    }
-
-    #chatCode { color: var(--muted); font-size: .76rem; }
-
-    .message-viewport {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      padding: 26px 22px;
-      background: var(--bg);
-    }
-
-    #messages {
-      width: min(100%, 640px);
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 26px;
-    }
-
-    .empty {
-      color: var(--muted);
-      text-align: center;
-      line-height: 1.6;
-      margin: auto;
-      max-width: 520px;
-      padding: 40px 20px;
-    }
-
-    .message {
-      animation: fadeInUp 180ms ease;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .message.outgoing { align-items: flex-end; }
-
-    .message-block {
-      max-width: min(90%, 560px);
-      width: fit-content;
-      padding: 0;
-    }
-
-    .message-head {
-      font-size: .84rem;
-      font-weight: 500;
-      color: var(--muted);
-      display: flex;
-      gap: 8px;
-      align-items: baseline;
-      justify-content: space-between;
-    }
-
-    .message-text {
-      margin-top: 6px;
-      font-size: 0.98rem;
-      line-height: 1.6;
-      white-space: pre-wrap;
-      word-break: break-word;
-      color: var(--text);
-    }
-
-    .message-actions {
-      margin-top: 8px;
-      display: flex;
-      justify-content: flex-end;
-    }
-
-    .delete-msg {
-      min-height: 34px;
-      font-size: .78rem;
-      padding: 6px 10px;
-      border-radius: 6px;
-      background: var(--bg);
-    }
-
-    .composer {
-      border-top: 1px solid var(--border);
-      padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
-      background: var(--bg);
-    }
-
-    .composer-inner {
-      width: min(100%, 680px);
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 10px;
-      align-items: end;
-    }
-
-    #messageInput {
-      width: 100%;
-      min-height: 54px;
-      max-height: 180px;
-      resize: vertical;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px;
-      background: var(--surface);
-      line-height: 1.55;
-      font-size: 0.97rem;
-    }
-
-    #sendBtn {
-      min-width: 112px;
-      min-height: 44px;
-      border-radius: 6px;
-      border: 1px solid #111111;
-      background: #111111;
-      color: #ffffff;
-      padding: 0 14px;
-      align-self: stretch;
-    }
-
-    #sendBtn:hover { background: #202020; }
-
-    .mobile-back { display: none; }
-
+    .tab.active { background: var(--bg-soft); }
+    .field { display: block; margin-top: 10px; color: var(--muted); font-size: 0.86rem; }
+    .input { width: 100%; margin-top: 6px; min-height: var(--tap); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; background: var(--bg); color: var(--text); }
+    .status-text { font-size: 0.84rem; color: var(--muted); min-height: 20px; }
+    .page-chat { height: 100dvh; display: grid; grid-template-columns: minmax(290px, 360px) 1fr; }
+    .sidebar { border-right: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; }
+    .sidebar-head, .sidebar-search, .sidebar-foot { padding: 12px; border-bottom: 1px solid var(--border); }
+    .sidebar-foot { border-top: 1px solid var(--border); border-bottom: 0; }
+    .identity { border: 0; background: none; width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; padding: 0; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: var(--surface); border: 1px solid var(--border); }
+    .avatar-md { width: 40px; height: 40px; }
+    .avatar-lg { width: 80px; height: 80px; margin: 0 auto 6px; display: block; }
+    .title { font-weight: 600; }
+    .subtle { font-size: 0.83rem; color: var(--muted); margin-top: 2px; }
+    .sidebar-list { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+    .section-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px 0; }
+    .section-row h2 { margin: 0; font-size: 0.95rem; }
+    .list { display: flex; flex-direction: column; gap: 4px; padding: 8px; overflow: auto; min-height: 0; }
+    .chat-item { border: 0; background: transparent; border-left: 2px solid transparent; border-radius: 8px; min-height: var(--tap); padding: 8px 10px; text-align: left; }
+    .chat-item.active { background: var(--bg-soft); border-left-color: #bfd4f7; }
+    .chat-row { display: flex; gap: 10px; align-items: center; }
+    .chat-meta { min-width: 0; flex: 1; }
+    .chat-meta strong { display: block; font-size: 0.93rem; }
+    .chat-meta span { display: block; font-size: 0.78rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-time { color: var(--muted); font-size: 0.74rem; }
+    .chat-shell { display: flex; flex-direction: column; min-width: 0; }
+    .chat-header { min-height: 70px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; padding: 12px 16px; }
+    .messages { flex: 1; overflow: auto; padding: 24px 16px 120px; background: var(--bg); }
+    .message-column { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+    .message { border: 1px solid transparent; border-radius: 8px; padding: 8px 10px; transition: background var(--transition), border-color var(--transition); }
+    .message.own { margin-left: auto; max-width: 88%; }
+    .message.other { margin-right: auto; max-width: 88%; }
+    .message.selected { background: var(--highlight); border-color: var(--border); }
+    .message-label { font-size: 0.75rem; color: var(--muted); margin-bottom: 4px; }
+    .message-head { font-size: 0.82rem; color: var(--muted); margin-bottom: 2px; }
+    .message-text { font-size: 0.98rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+    .message-foot { display: flex; justify-content: flex-end; font-size: 0.74rem; color: var(--muted); margin-top: 6px; gap: 6px; }
+    .typing { padding: 0 22px 8px; font-size: 0.8rem; color: var(--muted); }
+    .composer { position: sticky; bottom: 0; border-top: 1px solid var(--border); background: var(--bg); padding: 10px; display: flex; gap: 10px; }
+    .textarea { resize: none; min-height: var(--tap); max-height: 150px; }
+    .floating-panel { position: fixed; right: 24px; bottom: 98px; display: flex; gap: 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+    .danger { color: #6d1e1e; }
+    .modal { border: 1px solid var(--border); border-radius: 10px; padding: 0; width: min(92vw, 420px); }
+    .modal::backdrop { background: rgba(17,17,17,0.22); }
+    .modal-card { padding: 16px; }
+    .modal-card h3 { margin: 0 0 8px; }
+    .row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+    .mobile-only { display: none; }
     @media (max-width: 860px) {
-      #chatPage {
-        grid-template-columns: 1fr;
-      }
-
-      .sidebar {
-        border-right: 0;
-      }
-
-      .chat-view,
-      .sidebar {
-        position: absolute;
-        inset: 0;
-        background: var(--bg);
-      }
-
-      #chatPage.state-list .chat-view { display: none; }
-      #chatPage.state-chat .sidebar { display: none; }
-
-      .mobile-back {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 44px;
-      }
-
-      .chat-header {
-        min-height: 68px;
-        padding: 10px 12px;
-      }
-
-      .header-controls {
-        gap: 6px;
-      }
-
-      #chatCode { display: none; }
-
-      .composer-inner {
-        grid-template-columns: 1fr;
-      }
-
-      #sendBtn {
-        min-height: 46px;
-        width: 100%;
-      }
-    }
-
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
+      .page-chat { grid-template-columns: 1fr; }
+      .sidebar { position: absolute; inset: 0 auto 0 0; width: min(86vw, 360px); background: var(--bg); transform: translateX(-100%); transition: transform var(--transition); z-index: 22; }
+      .page-chat.mobile-list .sidebar { transform: translateX(0); }
+      .chat-shell { min-height: 100dvh; }
+      .mobile-only { display: inline-flex; }
     }
   </style>
 </head>
 <body>
-  <section id="authPage">
+  <section id="authPage" class="page page-auth">
     <div class="auth-card">
-      <h1 class="auth-title">Мессенджер</h1>
-      <div class="tabs">
-        <button type="button" class="tab active" id="loginTab">Вход</button>
-        <button type="button" class="tab" id="registerTab">Регистрация</button>
+      <h1>Messenger</h1>
+      <div class="tabs" role="tablist" aria-label="Авторизация">
+        <button id="loginTab" class="tab active" type="button">Вход</button>
+        <button id="registerTab" class="tab" type="button">Регистрация</button>
       </div>
-
       <form id="authForm" autocomplete="off">
-        <div class="field">
-          <label for="usernameInput">Логин</label>
-          <input class="input" id="usernameInput" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_.\-]{3,24}" placeholder="Например: max_user" />
+        <label class="field">Логин<input id="usernameInput" class="input" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_.\-]{3,24}" /></label>
+        <label class="field">Пароль<input id="passwordInput" class="input" type="password" required minlength="6" maxlength="64" /></label>
+        <div id="registerOnlyFields" hidden>
+          <label class="field">Имя<input id="displayNameInput" class="input" maxlength="64" /></label>
+          <label class="field">Статус<input id="statusInput" class="input" maxlength="100" /></label>
+          <label class="field">Аватар<input id="avatarInput" class="input" type="file" accept="image/*" /></label>
         </div>
-
-        <div class="field">
-          <label for="passwordInput">Пароль</label>
-          <input class="input" id="passwordInput" required type="password" minlength="6" maxlength="64" placeholder="Минимум 6 символов" />
-        </div>
-
-        <button id="authSubmit" class="primary-btn" type="submit">Войти</button>
+        <button id="authSubmit" class="btn-primary" type="submit">Войти</button>
       </form>
-
-      <div id="authStatus">Готово.</div>
+      <p id="authStatus" class="status-text">Готово.</p>
     </div>
   </section>
 
-  <section id="chatPage" class="state-list">
-    <aside class="sidebar">
-      <div class="sidebar-head">
-        <div class="profile-login" id="meLogin">@unknown</div>
-        <div class="profile-sub">Focused communication mode</div>
-      </div>
-
-      <div class="sidebar-search">
-        <input class="input" id="searchInput" placeholder="Поиск по логину" />
-      </div>
-
-      <div id="searchResults" class="list"></div>
-      <div id="dialogsList" class="list"></div>
-
-      <div class="sidebar-actions">
-        <button class="danger" id="logoutBtn" type="button">Выйти</button>
-      </div>
+  <section id="chatPage" class="page page-chat" hidden>
+    <aside id="leftPanel" class="sidebar">
+      <header class="sidebar-head">
+        <button id="openProfileBtn" class="identity" type="button">
+          <img id="meAvatar" class="avatar avatar-md" alt="me" />
+          <div><div id="meName" class="title">@unknown</div><div id="meStatus" class="subtle">—</div></div>
+        </button>
+      </header>
+      <section class="sidebar-search"><input id="searchInput" class="input" placeholder="Поиск по логину" /><div id="searchResults" class="list"></div></section>
+      <section class="sidebar-list"><div class="section-row"><h2>Чаты</h2><button id="createGroupBtn" class="btn-ghost" type="button">Новая группа</button></div><div id="dialogsList" class="list"></div></section>
+      <footer class="sidebar-foot"><button id="logoutBtn" class="btn-ghost danger" type="button">Выйти</button></footer>
     </aside>
 
-    <main class="chat-view">
+    <main class="chat-shell">
       <header class="chat-header">
-        <div class="header-controls">
-          <button id="mobileBack" class="subtle-btn mobile-back" type="button" aria-label="Назад">←</button>
-          <div>
-            <div class="chat-title" id="chatTitle">Выберите диалог</div>
-            <div class="chat-meta" id="presence">Статус: —</div>
-          </div>
-        </div>
-        <div class="header-controls">
-          <div id="chatCode">chat: ---</div>
-          <button id="deleteChatBtn" class="subtle-btn" type="button" disabled>Удалить чат</button>
-        </div>
+        <button id="mobileBackBtn" class="btn-ghost mobile-only" type="button">←</button>
+        <button id="chatIdentityBtn" class="identity" type="button" disabled>
+          <img id="chatAvatar" class="avatar avatar-md" alt="chat" />
+          <div><div id="chatTitle" class="title">Выберите чат</div><div id="presenceText" class="subtle">Статус: —</div></div>
+        </button>
       </header>
-
-      <div class="message-viewport" id="messageViewport">
-        <div id="messages">
-          <div class="empty">Найдите пользователя по логину, откройте диалог и начните переписку.</div>
-        </div>
-      </div>
-
+      <section id="messages" class="messages"></section>
+      <div id="typingIndicator" class="typing" hidden></div>
       <form id="composer" class="composer">
-        <div class="composer-inner">
-          <textarea id="messageInput" maxlength="1500" placeholder="Write a message..."></textarea>
-          <button id="sendBtn" type="submit">Отправить</button>
-        </div>
+        <textarea id="messageInput" class="input textarea" rows="1" placeholder="Write a message..."></textarea>
+        <button id="sendBtn" class="btn-primary" type="submit">Отправить</button>
       </form>
     </main>
   </section>
 
+  <div id="actionPanel" class="floating-panel" hidden>
+    <button id="forwardBtn" class="btn-ghost" type="button">Переслать</button>
+    <button id="deleteBtn" class="btn-ghost danger" type="button">Удалить</button>
+  </div>
+
+  <dialog id="profileModal" class="modal"><form method="dialog" class="modal-card" id="profileForm"><h3>Профиль</h3><img id="profileAvatar" class="avatar avatar-lg" alt="profile" /><label class="field">Имя<input id="profileDisplayName" class="input" maxlength="64" /></label><label class="field">Статус<input id="profileStatus" class="input" maxlength="100" /></label><label class="field" id="profileAvatarField">Аватар<input id="profileAvatarInput" class="input" type="file" accept="image/*" /></label><p id="profileMeta" class="status-text"></p><div class="row"><button class="btn-ghost" value="cancel">Закрыть</button><button id="profileSaveBtn" class="btn-primary" type="submit">Сохранить</button></div></form></dialog>
+  <dialog id="groupModal" class="modal"><form method="dialog" class="modal-card" id="groupForm"><h3>Новая группа</h3><label class="field">Название<input id="groupNameInput" class="input" maxlength="80" required /></label><label class="field">Описание<input id="groupDescriptionInput" class="input" maxlength="160" /></label><label class="field">Аватар<input id="groupAvatarInput" class="input" type="file" accept="image/*" /></label><label class="field">Участники (@login через запятую)<input id="groupMembersInput" class="input" /></label><div class="row"><button class="btn-ghost" value="cancel">Отмена</button><button class="btn-primary" type="submit">Создать</button></div></form></dialog>
+  <dialog id="forwardModal" class="modal"><form method="dialog" class="modal-card" id="forwardForm"><h3>Переслать сообщение</h3><div id="forwardTargets" class="list"></div><div class="row"><button class="btn-ghost" value="cancel">Закрыть</button></div></form></dialog>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-    import { getAnalytics, isSupported as analyticsSupported } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-analytics.js";
-    import {
-      getDatabase,
-      ref,
-      get,
-      set,
-      update,
-      push,
-      remove,
-      query,
-      orderByChild,
-      startAt,
-      endAt,
-      limitToLast,
-      onValue,
-      onDisconnect,
-      serverTimestamp
-    } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
+    import { getDatabase, ref, get, set, update, push, remove, query, orderByChild, startAt, endAt, limitToLast, onValue, onDisconnect, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyBalx-yReG31BkexcSYkX6CknHh_m_St2M",
@@ -555,487 +164,391 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    analyticsSupported().then((ok) => { if (ok) getAnalytics(app); }).catch(() => {});
-
-    const LS_SESSION = "messenger_session_v4";
+    const LS_SESSION = "messenger_session_v6";
+    const avatarPlaceholder = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Crect width='100%25' height='100%25' fill='%23f7f6f3'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='middle' text-anchor='middle' fill='%23787774' font-size='26' font-family='Arial'%3E%F0%9F%91%A4%3C/text%3E%3C/svg%3E";
     const $ = (id) => document.getElementById(id);
 
-    let mode = "login";
-    let me = null;
-    let activePeer = null;
-    let activeChatId = null;
-    let dialogsUnsub = null;
-    let messagesUnsub = null;
-    let presenceUnsub = null;
-    let isAuthSubmitting = false;
-    let isSendingMessage = false;
+    const state = { user: null, dialogs: [], activeChat: null, activeChatId: null, messages: [], selectedMessageId: null, hiddenMessageIds: {}, mode: "login" };
+    const unsub = { dialogs: null, messages: null, presence: null, typing: null };
 
-    function esc(v) {
-      return String(v).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
-    }
+    const toKey = (v = "") => v.trim().toLowerCase();
+    const withAvatar = (u) => u || avatarPlaceholder;
+    const fmtTime = (ts) => ts ? new Date(ts).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }) : "--:--";
+    const esc = (v = "") => v.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
 
-    function setStatus(text, isError = false) {
-      const el = $("authStatus");
-      el.textContent = text;
-      el.className = isError ? "error" : "";
-    }
-
-    function clearAuthArtifacts() {
-      localStorage.removeItem(LS_SESSION);
-      sessionStorage.removeItem(LS_SESSION);
-      document.cookie = `${LS_SESSION}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-      document.cookie = `messenger_session=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
-    }
-
-    function setAuthLoading(loading) {
-      isAuthSubmitting = loading;
-      ["authSubmit", "loginTab", "registerTab", "usernameInput", "passwordInput"].forEach((id) => { $(id).disabled = loading; });
-      $("authSubmit").textContent = loading ? (mode === "login" ? "Вход..." : "Регистрация...") : (mode === "login" ? "Войти" : "Зарегистрироваться");
-    }
-
-    function guardAuthAccess() {
-      if (me) return true;
-      $("chatPage").style.display = "none";
-      $("authPage").style.display = "grid";
-      return false;
-    }
-
-    const toKey = (login) => login.trim().toLowerCase();
-    const isValidLogin = (login) => /^[a-zA-Z0-9_.-]{3,24}$/.test(login);
-    const chatIdByUsers = (a, b) => [toKey(a), toKey(b)].sort().join("__");
-    const formatTime = (ts) => ts ? new Date(ts).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }) : "--:--";
-
-    async function hashPassword(raw) {
-      const data = new TextEncoder().encode(raw);
-      const hash = await crypto.subtle.digest("SHA-256", data);
-      return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
-    }
-
-    function setAuthMode(nextMode) {
-      if (isAuthSubmitting) return;
-      mode = nextMode;
+    function setAuthMode(mode) {
+      state.mode = mode;
       $("loginTab").classList.toggle("active", mode === "login");
       $("registerTab").classList.toggle("active", mode === "register");
-      $("authSubmit").textContent = mode === "login" ? "Войти" : "Зарегистрироваться";
-      setStatus(mode === "login" ? "Режим входа." : "Режим регистрации.");
+      $("registerOnlyFields").hidden = mode !== "register";
+      $("authSubmit").textContent = mode === "login" ? "Войти" : "Создать аккаунт";
     }
 
-    function setMobileState(state) {
-      const root = $("chatPage");
-      root.classList.remove("state-list", "state-chat");
-      root.classList.add(state);
+    function setAuthStatus(text, error = false) {
+      $("authStatus").textContent = text;
+      $("authStatus").style.color = error ? "#9b2525" : "";
+    }
+
+    async function hashPassword(raw) {
+      const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
+      return Array.from(new Uint8Array(digest)).map((x) => x.toString(16).padStart(2, "0")).join("");
+    }
+
+    function togglePages(authVisible) {
+      $("authPage").hidden = !authVisible;
+      $("chatPage").hidden = authVisible;
+    }
+
+    function privateChatId(a, b) { return [toKey(a), toKey(b)].sort().join("__"); }
+    function chatMessagePath(chat) { return chat.type === "group" ? `groups/${chat.groupId}/messages` : `chats/${chat.chatId}/messages`; }
+
+    function fileToSquareBase64(file) {
+      return new Promise((resolve, reject) => {
+        if (!file) return resolve("");
+        const r = new FileReader();
+        r.onload = () => {
+          const img = new Image();
+          img.onload = () => {
+            const size = Math.min(img.width, img.height);
+            const sx = (img.width - size) / 2;
+            const sy = (img.height - size) / 2;
+            const c = document.createElement("canvas");
+            c.width = 256; c.height = 256;
+            c.getContext("2d").drawImage(img, sx, sy, size, size, 0, 0, 256, 256);
+            resolve(c.toDataURL("image/jpeg", 0.85));
+          };
+          img.onerror = () => reject(new Error("Ошибка чтения изображения"));
+          img.src = r.result;
+        };
+        r.onerror = () => reject(new Error("Ошибка чтения файла"));
+        r.readAsDataURL(file);
+      });
+    }
+
+    async function registerUser({ username, password, displayName, status, avatarUrl }) {
+      const usernameKey = toKey(username);
+      const userRef = ref(db, `users/${usernameKey}`);
+      const exists = await get(userRef);
+      if (exists.exists()) throw new Error("Логин уже занят");
+      const passHash = await hashPassword(password);
+      await set(userRef, { username, usernameKey, displayName: displayName || username, avatarUrl: avatarUrl || "", status: status || "", passHash, createdAt: Date.now(), lastSeen: Date.now() });
+      return { username, usernameKey, displayName: displayName || username, avatarUrl: avatarUrl || "", status: status || "" };
+    }
+
+    async function loginUser(username, password) {
+      const usernameKey = toKey(username);
+      const snap = await get(ref(db, `users/${usernameKey}`));
+      if (!snap.exists()) throw new Error("Пользователь не найден");
+      const user = snap.val();
+      const passHash = await hashPassword(password);
+      if (passHash !== user.passHash) throw new Error("Неверный пароль");
+      await update(ref(db, `users/${usernameKey}`), { lastSeen: Date.now() });
+      return user;
+    }
+
+    async function setPresence(user) {
+      const pRef = ref(db, `presence/${user.usernameKey}`);
+      await update(pRef, { online: true, lastSeen: serverTimestamp(), username: user.username });
+      onDisconnect(pRef).update({ online: false, lastSeen: serverTimestamp() });
+    }
+
+    async function searchUsersByPrefix(prefix) {
+      const term = toKey(prefix);
+      if (term.length < 2) return [];
+      const q = query(ref(db, "users"), orderByChild("usernameKey"), startAt(term), endAt(`${term}\uf8ff`), limitToLast(30));
+      const snap = await get(q);
+      return Object.values(snap.val() || {}).filter((u) => u.usernameKey !== state.user.usernameKey);
+    }
+
+    async function createGroup({ name, description, avatarUrl, memberLogins }) {
+      const groupRef = push(ref(db, "groups"));
+      const groupId = groupRef.key;
+      const members = { [state.user.usernameKey]: true };
+      memberLogins.map((x) => toKey(x)).filter(Boolean).forEach((x) => { members[x] = true; });
+      await set(groupRef, { name: name.trim(), description: String(description || "").trim(), avatarUrl: avatarUrl || "", creatorId: state.user.usernameKey, members, createdAt: Date.now() });
+      const preview = { type: "group", groupId, name: name.trim(), description: String(description || "").trim(), avatarUrl: avatarUrl || "", lastMessage: "Группа создана", lastAt: Date.now() };
+      const batch = {};
+      Object.keys(members).forEach((uid) => { batch[`userChats/${uid}/${groupId}`] = preview; });
+      await update(ref(db), batch);
+      return groupId;
+    }
+
+    async function sendMessage(chat, text, forwarded = false, originalSender = "") {
+      const clean = text.trim();
+      if (!clean) return;
+      const createdAt = Date.now();
+      const payload = { text: clean, from: state.user.usernameKey, fromName: state.user.displayName || state.user.username, createdAt, status: "sent", forwarded, originalSender };
+      await push(ref(db, chatMessagePath(chat)), payload);
+
+      if (chat.type === "private") {
+        const myPreview = { type: "private", chatId: chat.chatId, peer: chat.peer, peerKey: toKey(chat.peer), peerName: chat.peerName, peerAvatar: chat.peerAvatar || "", lastMessage: clean.slice(0, 120), lastAt: createdAt };
+        const peerPreview = { ...myPreview, peer: state.user.username, peerKey: state.user.usernameKey, peerName: state.user.displayName || state.user.username, peerAvatar: state.user.avatarUrl || "" };
+        await update(ref(db), { [`userChats/${state.user.usernameKey}/${chat.chatId}`]: myPreview, [`userChats/${toKey(chat.peer)}/${chat.chatId}`]: peerPreview, [`users/${state.user.usernameKey}/lastSeen`]: createdAt });
+      } else {
+        const preview = { type: "group", groupId: chat.groupId, name: chat.name, description: chat.description || "", avatarUrl: chat.avatarUrl || "", lastMessage: clean.slice(0, 120), lastAt: createdAt };
+        const members = (await get(ref(db, `groups/${chat.groupId}/members`))).val() || {};
+        const batch = {};
+        Object.keys(members).forEach((uid) => { batch[`userChats/${uid}/${chat.groupId}`] = preview; });
+        await update(ref(db), batch);
+      }
+    }
+
+    function renderSelf() {
+      $("meName").textContent = state.user.displayName || `@${state.user.username}`;
+      $("meStatus").textContent = state.user.status || "Без статуса";
+      $("meAvatar").src = withAvatar(state.user.avatarUrl);
+    }
+
+    function renderHeader(text = "Статус: —") {
+      if (!state.activeChat) {
+        $("chatIdentityBtn").disabled = true;
+        $("chatTitle").textContent = "Выберите чат";
+        $("chatAvatar").src = withAvatar("");
+        $("presenceText").textContent = text;
+        return;
+      }
+      const title = state.activeChat.type === "group" ? state.activeChat.name : (state.activeChat.peerName || `@${state.activeChat.peer}`);
+      const avatar = state.activeChat.type === "group" ? state.activeChat.avatarUrl : state.activeChat.peerAvatar;
+      $("chatIdentityBtn").disabled = false;
+      $("chatTitle").textContent = title;
+      $("chatAvatar").src = withAvatar(avatar);
+      $("presenceText").textContent = text;
+    }
+
+    function renderDialogs() {
+      const root = $("dialogsList");
+      root.textContent = "";
+      state.dialogs.forEach((dialog) => {
+        const name = dialog.type === "group" ? dialog.name : (dialog.peerName || `@${dialog.peer}`);
+        const avatar = dialog.type === "group" ? dialog.avatarUrl : dialog.peerAvatar;
+        const btn = document.createElement("button");
+        btn.className = `chat-item ${(dialog.chatId || dialog.groupId) === state.activeChatId ? "active" : ""}`;
+        btn.innerHTML = `<span class='chat-row'><img class='avatar' src='${withAvatar(avatar)}' alt='' /><span class='chat-meta'><strong>${esc(name)}</strong><span>${esc(dialog.lastMessage || "Пусто")}</span></span><span class='chat-time'>${fmtTime(dialog.lastAt)}</span></span>`;
+        btn.onclick = () => openDialog(dialog);
+        root.append(btn);
+      });
     }
 
     function renderSearch(users) {
       const root = $("searchResults");
-      root.innerHTML = "";
-      if (!users.length) {
-        root.innerHTML = '<div class="ghost">Пользователи не найдены</div>';
-        return;
-      }
-
+      root.textContent = "";
       users.forEach((u) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = `chat-item ${activePeer === u.username ? "active" : ""}`;
-        btn.innerHTML = `<div class="chat-main"><span class="chat-name">@${esc(u.username)}</span><span class="chat-time">новый</span></div><div class="chat-preview">Открыть диалог</div>`;
-        btn.addEventListener("click", () => openDialog(u.username));
-        root.appendChild(btn);
+        const b = document.createElement("button");
+        b.className = "chat-item";
+        b.innerHTML = `<span class='chat-row'><img class='avatar' src='${withAvatar(u.avatarUrl)}' alt='' /><span class='chat-meta'><strong>${esc(u.displayName || u.username)}</strong><span>@${esc(u.username)}</span></span></span>`;
+        b.onclick = () => openDialog({ type: "private", chatId: privateChatId(state.user.username, u.username), peer: u.username, peerKey: u.usernameKey, peerName: u.displayName || u.username, peerAvatar: u.avatarUrl || "" });
+        root.append(b);
       });
     }
 
-    function renderDialogs(dialogs) {
-      const root = $("dialogsList");
-      root.innerHTML = "";
-
-      if (!dialogs.length) {
-        root.innerHTML = '<div class="ghost">Пока нет диалогов</div>';
-        return;
-      }
-
-      dialogs.forEach((d) => {
-        const item = document.createElement("button");
-        item.type = "button";
-        item.className = `chat-item ${activePeer === d.peer ? "active" : ""}`;
-        item.innerHTML = `
-          <div class="chat-main">
-            <span class="chat-name">@${esc(d.peer)}</span>
-            <span class="chat-time">${formatTime(d.lastAt)}</span>
-          </div>
-          <div class="chat-preview">${esc(d.lastMessage || "Пусто")}</div>
-        `;
-        item.addEventListener("click", () => openDialog(d.peer));
-        root.appendChild(item);
-      });
-    }
-
-    function renderMessages(items) {
+    function renderMessages() {
       const root = $("messages");
-      root.innerHTML = "";
+      let col = root.querySelector(".message-column");
+      if (!col) { col = document.createElement("div"); col.className = "message-column"; root.append(col); }
+      const existing = new Map([...col.children].map((el) => [el.dataset.id, el]));
+      const seen = new Set();
 
-      if (!items.length) {
-        root.innerHTML = '<div class="empty">Диалог открыт. Напишите первое сообщение.</div>';
-        return;
-      }
-
-      items.forEach((m) => {
-        const own = m.fromKey === me.usernameKey;
-        const el = document.createElement("article");
-        el.className = `message ${own ? "outgoing" : "incoming"}`;
-        el.innerHTML = `
-          <div class="message-block">
-            <div class="message-head">
-              <span>@${esc(m.from)}</span>
-              <time>${formatTime(m.createdAt)}</time>
-            </div>
-            <div class="message-text">${esc(m.text)}</div>
-          </div>
-        `;
-
-        if (own) {
-          const actions = document.createElement("div");
-          actions.className = "message-actions";
-          const removeBtn = document.createElement("button");
-          removeBtn.type = "button";
-          removeBtn.className = "delete-msg";
-          removeBtn.textContent = "Удалить";
-          removeBtn.addEventListener("click", () => deleteMessage(m.id).catch(() => {}));
-          actions.appendChild(removeBtn);
-          el.querySelector(".message-block").appendChild(actions);
+      state.messages.forEach((m) => {
+        if (state.hiddenMessageIds[m.id]) return;
+        seen.add(m.id);
+        let row = existing.get(m.id);
+        if (!row) {
+          row = document.createElement("article");
+          row.dataset.id = m.id;
+          row.className = "message";
+          row.onclick = (e) => { e.stopPropagation(); state.selectedMessageId = state.selectedMessageId === m.id ? null : m.id; toggleActionPanel(); renderMessages(); };
+          col.append(row);
         }
-
-        root.appendChild(el);
+        row.classList.toggle("own", m.from === state.user.usernameKey);
+        row.classList.toggle("other", m.from !== state.user.usernameKey);
+        row.classList.toggle("selected", state.selectedMessageId === m.id);
+        row.innerHTML = `${m.forwarded ? `<div class='message-label'>Forwarded from @${esc(m.originalSender || "unknown")}</div>` : ""}<div class='message-head'>${esc(m.fromName || m.from)}</div><div class='message-text'>${esc(m.text)}</div><div class='message-foot'><span>${fmtTime(m.createdAt)}</span><span>${esc(m.status || "sent")}</span></div>`;
       });
-
-      const viewport = $("messageViewport");
-      viewport.scrollTop = viewport.scrollHeight;
+      existing.forEach((el, id) => { if (!seen.has(id)) el.remove(); });
+      const nearBottom = root.scrollHeight - root.scrollTop - root.clientHeight < 90;
+      if (nearBottom) root.scrollTop = root.scrollHeight;
     }
 
-    async function syncChatPreview(chatId, leftUsername, rightUsername) {
-      const leftKey = toKey(leftUsername);
-      const rightKey = toKey(rightUsername);
-      const lastSnap = await get(query(ref(db, `chats/${chatId}/messages`), limitToLast(1)));
-      const raw = lastSnap.val() || {};
-      const lastMessage = Object.values(raw)[0];
+    function toggleActionPanel() { $("actionPanel").hidden = !state.selectedMessageId; }
 
-      if (!lastMessage) {
-        await update(ref(db), {
-          [`userChats/${leftKey}/${chatId}`]: null,
-          [`userChats/${rightKey}/${chatId}`]: null
+    async function openDialog(dialog) {
+      state.activeChat = dialog.type === "group" ? { type: "group", groupId: dialog.groupId, name: dialog.name, avatarUrl: dialog.avatarUrl || "", description: dialog.description || "" } : { type: "private", chatId: dialog.chatId, peer: dialog.peer, peerKey: dialog.peerKey || toKey(dialog.peer), peerName: dialog.peerName || dialog.peer, peerAvatar: dialog.peerAvatar || "" };
+      state.activeChatId = dialog.chatId || dialog.groupId;
+      state.selectedMessageId = null;
+      $("chatPage").classList.remove("mobile-list");
+      $("messageInput").focus();
+      renderHeader("Загрузка...");
+
+      state.hiddenMessageIds = (await get(ref(db, `hiddenMessages/${state.user.usernameKey}/${state.activeChatId}`))).val() || {};
+      unsub.messages?.(); unsub.presence?.(); unsub.typing?.();
+
+      unsub.messages = onValue(query(ref(db, chatMessagePath(state.activeChat)), limitToLast(50)), (snap) => {
+        state.messages = Object.entries(snap.val() || {}).map(([id, value]) => ({ id, ...value })).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+        renderMessages();
+      });
+
+      if (state.activeChat.type === "private") {
+        unsub.presence = onValue(ref(db, `presence/${state.activeChat.peerKey}`), (snap) => {
+          const p = snap.val() || {};
+          renderHeader(p.online ? "online" : `last seen ${p.lastSeen ? new Date(p.lastSeen).toLocaleString("ru-RU") : "—"}`);
         });
-        return;
+      } else {
+        renderHeader("Групповой чат");
       }
 
-      const safeText = String(lastMessage.text || "").slice(0, 120);
-      const safeDate = Number(lastMessage.createdAt || Date.now());
-
-      await update(ref(db), {
-        [`userChats/${leftKey}/${chatId}`]: { peer: rightUsername, chatId, lastMessage: safeText, lastAt: safeDate },
-        [`userChats/${rightKey}/${chatId}`]: { peer: leftUsername, chatId, lastMessage: safeText, lastAt: safeDate }
+      unsub.typing = onValue(ref(db, state.activeChat.type === "group" ? `typing/group_${state.activeChat.groupId}` : `typing/${state.activeChat.chatId}`), (snap) => {
+        const t = snap.val() || {};
+        const peersTyping = Object.keys(t).filter((id) => id !== state.user.usernameKey);
+        $("typingIndicator").hidden = !peersTyping.length;
+        $("typingIndicator").textContent = peersTyping.length ? "Печатает..." : "";
       });
     }
 
-    async function register(login, password) {
-      const usernameKey = toKey(login);
-      const userRef = ref(db, `users/${usernameKey}`);
-      const existsSnap = await get(userRef);
-      if (existsSnap.exists()) throw new Error("Такой логин уже занят.");
-
-      const passHash = await hashPassword(password);
-      await set(userRef, { username: login, usernameKey, passHash, createdAt: Date.now(), lastSeen: Date.now() });
-      return { username: login, usernameKey };
+    function openProfile(user) {
+      const own = user.usernameKey === state.user.usernameKey;
+      $("profileAvatar").src = withAvatar(user.avatarUrl || state.user.avatarUrl);
+      $("profileDisplayName").value = user.displayName || user.username || "";
+      $("profileStatus").value = user.status || "";
+      $("profileSaveBtn").hidden = !own;
+      $("profileAvatarField").hidden = !own;
+      $("profileMeta").textContent = own ? `@${state.user.username}` : `@${user.username || "unknown"}`;
+      $("profileModal").showModal();
     }
 
-    async function login(loginValue, password) {
-      const usernameKey = toKey(loginValue);
-      const userSnap = await get(ref(db, `users/${usernameKey}`));
-      if (!userSnap.exists()) throw new Error("Пользователь не найден.");
-
-      const user = userSnap.val();
-      const passHash = await hashPassword(password);
-      if (user.passHash !== passHash) throw new Error("Неверный пароль.");
-
-      await update(ref(db, `users/${usernameKey}`), { lastSeen: Date.now() });
-      return { username: user.username, usernameKey };
-    }
-
-    async function beginSession(user) {
-      me = user;
-      localStorage.setItem(LS_SESSION, JSON.stringify(user));
-
-      $("meLogin").textContent = `@${me.username}`;
-      $("authPage").style.display = "none";
-      $("chatPage").style.display = "grid";
-      setMobileState("state-list");
-
-      await setOnlinePresence();
-      watchDialogs();
-    }
-
-    async function setOnlinePresence() {
-      const pRef = ref(db, `presence/${me.usernameKey}`);
-      await set(pRef, { username: me.username, online: true, lastSeen: serverTimestamp() });
-      onDisconnect(pRef).update({ online: false, lastSeen: serverTimestamp() });
-    }
-
-    function watchDialogs() {
-      if (dialogsUnsub) dialogsUnsub();
-      dialogsUnsub = onValue(ref(db, `userChats/${me.usernameKey}`), (snap) => {
-        const rows = Object.values(snap.val() || {}).sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
-        renderDialogs(rows);
-      });
-    }
-
-    function watchMessages() {
-      if (messagesUnsub) messagesUnsub();
-      const q = query(ref(db, `chats/${activeChatId}/messages`), limitToLast(200));
-      messagesUnsub = onValue(q, (snap) => {
-        const rows = Object.entries(snap.val() || {}).map(([id, value]) => ({ id, ...value })).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-        renderMessages(rows);
-      });
-    }
-
-    function watchPresence() {
-      if (presenceUnsub) presenceUnsub();
-      presenceUnsub = onValue(ref(db, `presence/${toKey(activePeer)}`), (snap) => {
-        const online = Boolean(snap.val()?.online);
-        $("presence").textContent = `Статус: ${online ? "онлайн" : "оффлайн"}`;
-      });
-    }
-
-    function openDialog(peerLogin) {
-      if (!guardAuthAccess()) return;
-      activePeer = peerLogin;
-      activeChatId = chatIdByUsers(me.username, activePeer);
-      $("chatTitle").textContent = `Диалог с @${activePeer}`;
-      $("chatCode").textContent = `chat: ${activeChatId}`;
-      $("deleteChatBtn").disabled = false;
-      watchPresence();
-      watchMessages();
-      watchDialogs();
-      if (window.matchMedia("(max-width: 860px)").matches) setMobileState("state-chat");
-    }
-
-    async function sendMessage(text) {
-      if (!guardAuthAccess() || !activePeer || !activeChatId) return;
-      const clean = text.trim();
-      if (!clean) return;
-
-      const now = Date.now();
-      const payload = { from: me.username, fromKey: me.usernameKey, to: activePeer, text: clean, createdAt: now };
-      await push(ref(db, `chats/${activeChatId}/messages`), payload);
-
-      const myDialog = { peer: activePeer, chatId: activeChatId, lastMessage: clean.slice(0, 120), lastAt: now };
-      const peerDialog = { peer: me.username, chatId: activeChatId, lastMessage: clean.slice(0, 120), lastAt: now };
-
-      await update(ref(db), {
-        [`userChats/${me.usernameKey}/${activeChatId}`]: myDialog,
-        [`userChats/${toKey(activePeer)}/${activeChatId}`]: peerDialog,
-        [`users/${me.usernameKey}/lastSeen`]: now
-      });
-    }
-
-    async function deleteMessage(messageId) {
-      if (!guardAuthAccess() || !activeChatId || !activePeer || !messageId) return;
-      const messageRef = ref(db, `chats/${activeChatId}/messages/${messageId}`);
-      const snap = await get(messageRef);
-      if (!snap.exists()) return;
-      const message = snap.val();
-      if (message.fromKey !== me.usernameKey) {
-        alert("Можно удалять только свои сообщения.");
-        return;
-      }
-      await remove(messageRef);
-      await syncChatPreview(activeChatId, me.username, activePeer);
-    }
-
-    async function deleteChatWithPeer(peerUsername = activePeer) {
-      if (!guardAuthAccess() || !me || !peerUsername) return;
-      const chatId = chatIdByUsers(me.username, peerUsername);
-      const peerKey = toKey(peerUsername);
-
-      const approved = window.confirm(`Удалить чат с @${peerUsername}? Это действие нельзя отменить.`);
-      if (!approved) return;
-
-      await update(ref(db), {
-        [`chats/${chatId}`]: null,
-        [`userChats/${me.usernameKey}/${chatId}`]: null,
-        [`userChats/${peerKey}/${chatId}`]: null
-      });
-
-      if (activeChatId === chatId) {
-        if (messagesUnsub) messagesUnsub();
-        if (presenceUnsub) presenceUnsub();
-        messagesUnsub = null;
-        presenceUnsub = null;
-        activePeer = null;
-        activeChatId = null;
-        $("chatTitle").textContent = "Выберите диалог";
-        $("presence").textContent = "Статус: —";
-        $("chatCode").textContent = "chat: ---";
-        $("deleteChatBtn").disabled = true;
-        $("messages").innerHTML = '<div class="empty">Чат удалён. Откройте новый диалог.</div>';
-      }
-    }
-
-    async function searchUsers(prefix) {
-      if (!guardAuthAccess()) return;
-      const term = toKey(prefix);
-      if (term.length < 2) {
-        renderSearch([]);
-        return;
-      }
-
-      const mapRows = (raw) => Object.values(raw || {}).filter((u) => u.usernameKey !== me.usernameKey).filter((u) => String(u.usernameKey || "").startsWith(term)).slice(0, 30).map((u) => ({ username: u.username }));
-
-      try {
-        const q = query(ref(db, "users"), orderByChild("usernameKey"), startAt(term), endAt(`${term}\uf8ff`));
-        const snap = await get(q);
-        renderSearch(mapRows(snap.val()));
-      } catch (err) {
-        const message = String(err?.message || "");
-        const needsIndex = message.includes("Index not defined") || message.includes(".indexOn");
-        if (needsIndex) {
-          try {
-            const fullSnap = await get(ref(db, "users"));
-            renderSearch(mapRows(fullSnap.val()));
-            return;
-          } catch (fallbackErr) {
-            console.error("Search fallback error:", fallbackErr);
-          }
-        }
-        console.error("Search error:", err);
-        renderSearch([]);
-        $("searchResults").innerHTML = '<div class="ghost">Ошибка поиска. Проверьте index в Firebase.</div>';
-      }
-    }
-
-    async function logout() {
-      if (me?.usernameKey) {
-        await update(ref(db, `presence/${me.usernameKey}`), { online: false, lastSeen: serverTimestamp() });
-      }
-
-      if (dialogsUnsub) dialogsUnsub();
-      if (messagesUnsub) messagesUnsub();
-      if (presenceUnsub) presenceUnsub();
-      dialogsUnsub = null;
-      messagesUnsub = null;
-      presenceUnsub = null;
-
-      me = null;
-      activePeer = null;
-      activeChatId = null;
-      clearAuthArtifacts();
-
-      $("chatPage").style.display = "none";
-      $("authPage").style.display = "grid";
-      $("chatTitle").textContent = "Выберите диалог";
-      $("presence").textContent = "Статус: —";
-      $("chatCode").textContent = "chat: ---";
-      $("deleteChatBtn").disabled = true;
-      $("messages").innerHTML = '<div class="empty">Найдите пользователя по логину, откройте диалог и начните переписку.</div>';
-      $("dialogsList").innerHTML = "";
-      $("searchResults").innerHTML = "";
-      $("messageInput").value = "";
-      setMobileState("state-list");
-    }
-
-    async function restoreSession() {
+    async function initSession() {
       const raw = localStorage.getItem(LS_SESSION);
       if (!raw) return;
       try {
-        const session = JSON.parse(raw);
-        if (!session?.usernameKey) return;
-        const snap = await get(ref(db, `users/${session.usernameKey}`));
-        clearAuthArtifacts();
-        if (snap.exists()) {
-          const savedUsername = String(snap.val()?.username || "").trim();
-          if (savedUsername) {
-            $("usernameInput").value = savedUsername;
-            $("passwordInput").value = "";
-          }
-          setStatus("Сессия найдена. Введите пароль для входа.");
-        } else {
-          setStatus("Сессия устарела. Войдите заново.");
-        }
+        state.user = JSON.parse(raw);
+        togglePages(false);
+        renderSelf();
+        await setPresence(state.user);
+        watchDialogs();
       } catch {
-        clearAuthArtifacts();
+        localStorage.removeItem(LS_SESSION);
       }
     }
 
-    function bindEvents() {
-      $("loginTab").addEventListener("click", () => setAuthMode("login"));
-      $("registerTab").addEventListener("click", () => setAuthMode("register"));
+    function watchDialogs() {
+      unsub.dialogs?.();
+      unsub.dialogs = onValue(ref(db, `userChats/${state.user.usernameKey}`), (snap) => {
+        state.dialogs = Object.values(snap.val() || {}).filter((x) => !x.hidden).sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
+        renderDialogs();
+      });
+    }
 
-      $("authForm").addEventListener("submit", async (e) => {
+    function bind() {
+      setAuthMode("login");
+      $("loginTab").onclick = () => setAuthMode("login");
+      $("registerTab").onclick = () => setAuthMode("register");
+      $("mobileBackBtn").onclick = () => $("chatPage").classList.add("mobile-list");
+
+      $("authForm").onsubmit = async (e) => {
         e.preventDefault();
-        if (isAuthSubmitting) return;
-        const loginValue = $("usernameInput").value.trim();
+        const username = $("usernameInput").value.trim();
         const password = $("passwordInput").value;
-        if (!isValidLogin(loginValue)) {
-          setStatus("Логин: 3-24 символа, только A-Z, 0-9, _, ., -", true);
-          return;
-        }
-        if (password.length < 6) {
-          setStatus("Пароль должен быть не короче 6 символов.", true);
-          return;
-        }
-
+        if (!/^[a-zA-Z0-9_.-]{3,24}$/.test(username)) return setAuthStatus("Логин некорректен", true);
+        if (password.length < 6) return setAuthStatus("Минимум 6 символов", true);
         try {
-          setAuthLoading(true);
-          setStatus(mode === "login" ? "Выполняется вход..." : "Выполняется регистрация...");
-          const user = mode === "login" ? await login(loginValue, password) : await register(loginValue, password);
-          setStatus("Успешно.");
-          await beginSession(user);
+          if (state.mode === "login") {
+            state.user = await loginUser(username, password);
+          } else {
+            const avatarUrl = await fileToSquareBase64($("avatarInput").files[0]);
+            state.user = await registerUser({ username, password, displayName: $("displayNameInput").value.trim(), status: $("statusInput").value.trim(), avatarUrl });
+          }
+          localStorage.setItem(LS_SESSION, JSON.stringify(state.user));
+          togglePages(false);
+          renderSelf();
+          await setPresence(state.user);
+          watchDialogs();
         } catch (err) {
-          setStatus(err?.message || "Ошибка авторизации.", true);
-        } finally {
-          setAuthLoading(false);
+          setAuthStatus(err.message || "Ошибка", true);
         }
-      });
+      };
 
-      let timer = null;
-      $("searchInput").addEventListener("input", () => {
-        clearTimeout(timer);
-        const value = $("searchInput").value;
-        timer = setTimeout(() => { if (me) searchUsers(value).catch(() => renderSearch([])); }, 220);
-      });
+      $("searchInput").oninput = debounce(async (e) => renderSearch(await searchUsersByPrefix(e.target.value)), 220);
+      $("composer").onsubmit = async (e) => { e.preventDefault(); if (!state.activeChat) return; const text = $("messageInput").value; $("messageInput").value = ""; await sendMessage(state.activeChat, text); };
+      $("messageInput").onkeydown = async (e) => {
+        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); $("composer").requestSubmit(); return; }
+        if (!state.activeChat || !state.user) return;
+        const path = state.activeChat.type === "group" ? `typing/group_${state.activeChat.groupId}/${state.user.usernameKey}` : `typing/${state.activeChat.chatId}/${state.user.usernameKey}`;
+        await update(ref(db, path), { value: true, at: Date.now() });
+        clearTimeout(window.__typingTimer);
+        window.__typingTimer = setTimeout(() => remove(ref(db, path)).catch(() => {}), 1200);
+      };
 
-      $("composer").addEventListener("submit", async (e) => {
+      $("logoutBtn").onclick = () => { localStorage.removeItem(LS_SESSION); location.reload(); };
+      $("openProfileBtn").onclick = () => openProfile(state.user);
+      $("chatIdentityBtn").onclick = () => {
+        if (!state.activeChat || state.activeChat.type === "group") return;
+        openProfile({ usernameKey: state.activeChat.peerKey, username: state.activeChat.peer, displayName: state.activeChat.peerName, avatarUrl: state.activeChat.peerAvatar, status: "" });
+      };
+
+      $("profileForm").onsubmit = async (e) => {
         e.preventDefault();
-        if (!me || !activeChatId || isSendingMessage) return;
-        const input = $("messageInput");
-        const text = input.value;
-        input.value = "";
-        isSendingMessage = true;
-        $("sendBtn").disabled = true;
-        $("sendBtn").textContent = "Отправка...";
+        const patch = { displayName: $("profileDisplayName").value.trim() || state.user.username, status: $("profileStatus").value.trim().slice(0, 100) };
+        const file = $("profileAvatarInput").files[0];
+        if (file) patch.avatarUrl = await fileToSquareBase64(file);
+        await update(ref(db, `users/${state.user.usernameKey}`), patch);
+        Object.assign(state.user, patch);
+        localStorage.setItem(LS_SESSION, JSON.stringify(state.user));
+        renderSelf();
+        $("profileModal").close();
+      };
 
-        try {
-          await sendMessage(text);
-        } catch {
-          input.value = text;
-        } finally {
-          isSendingMessage = false;
-          $("sendBtn").disabled = false;
-          $("sendBtn").textContent = "Отправить";
+      $("createGroupBtn").onclick = () => $("groupModal").showModal();
+      $("groupForm").onsubmit = async (e) => {
+        e.preventDefault();
+        const avatarUrl = await fileToSquareBase64($("groupAvatarInput").files[0]);
+        await createGroup({ name: $("groupNameInput").value, description: $("groupDescriptionInput").value, avatarUrl, memberLogins: $("groupMembersInput").value.split(",").map((v) => v.trim()).filter(Boolean) });
+        $("groupModal").close();
+      };
+
+      $("deleteBtn").onclick = async () => {
+        const target = state.messages.find((m) => m.id === state.selectedMessageId);
+        if (!target || !state.activeChatId) return;
+        if (target.from === state.user.usernameKey) {
+          const mode = window.prompt("1 — удалить у меня, 2 — удалить у всех", "1");
+          if (mode === "2") await remove(ref(db, `${chatMessagePath(state.activeChat)}/${target.id}`));
+          else await update(ref(db), { [`hiddenMessages/${state.user.usernameKey}/${state.activeChatId}/${target.id}`]: true });
+        } else {
+          await update(ref(db), { [`hiddenMessages/${state.user.usernameKey}/${state.activeChatId}/${target.id}`]: true });
         }
-      });
+        state.selectedMessageId = null;
+        toggleActionPanel();
+      };
 
-      $("logoutBtn").addEventListener("click", () => logout().catch(() => {}));
-      $("deleteChatBtn").addEventListener("click", () => deleteChatWithPeer().catch(() => {}));
-      $("mobileBack").addEventListener("click", () => setMobileState("state-list"));
+      $("forwardBtn").onclick = () => {
+        const selected = state.messages.find((m) => m.id === state.selectedMessageId);
+        if (!selected) return;
+        const root = $("forwardTargets");
+        root.textContent = "";
+        state.dialogs.filter((d) => (d.chatId || d.groupId) !== state.activeChatId).forEach((d) => {
+          const b = document.createElement("button");
+          b.className = "chat-item";
+          const name = d.type === "group" ? d.name : (d.peerName || `@${d.peer}`);
+          const avatar = d.type === "group" ? d.avatarUrl : d.peerAvatar;
+          b.innerHTML = `<span class='chat-row'><img class='avatar' src='${withAvatar(avatar)}' alt='' /><span class='chat-meta'><strong>${esc(name)}</strong><span>${d.type === "group" ? "Группа" : "Личный чат"}</span></span></span>`;
+          b.onclick = async () => {
+            const chat = d.type === "group" ? { type: "group", groupId: d.groupId, name: d.name, avatarUrl: d.avatarUrl } : { type: "private", chatId: d.chatId, peer: d.peer, peerName: d.peerName, peerAvatar: d.peerAvatar };
+            await sendMessage(chat, selected.text, true, selected.fromName || selected.from);
+            $("forwardModal").close();
+          };
+          root.append(b);
+        });
+        $("forwardModal").showModal();
+      };
 
-      window.addEventListener("popstate", () => { guardAuthAccess(); });
+      document.addEventListener("click", () => { state.selectedMessageId = null; toggleActionPanel(); renderMessages(); });
     }
 
-    function init() {
-      guardAuthAccess();
-      bindEvents();
-      restoreSession().catch(() => {});
+    function debounce(fn, delay) {
+      let timer;
+      return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), delay); };
     }
 
-    init();
+    bind();
+    initSession();
   </script>
 </body>
 </html>
