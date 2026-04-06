@@ -828,6 +828,9 @@
       messageNodes: new Map(),
       profileAvatarDraft: "",
       groupAvatarDraft: "",
+      searchUsers: {},
+      selectedGroupMembers: new Set(),
+      groupFriendLookup: {},
       adminTransfer: {
         groupId: "",
         leaveAfterTransfer: false,
@@ -1175,19 +1178,24 @@
       const friendKeys = Object.keys(state.friends || {});
       const list = $("groupFriendsList");
       list.innerHTML = "";
+      state.selectedGroupMembers = new Set();
+      state.groupFriendLookup = {};
 
       if (!friendKeys.length) {
         list.innerHTML = '<div class="ghost">Нет друзей для добавления.</div>';
       } else {
-        for (const key of friendKeys) {
-          const snap = await get(ref(db, `users/${key}`));
-          if (!snap.exists()) continue;
+        const snapshots = await Promise.all(friendKeys.map((key) => get(ref(db, `users/${key}`))));
+        snapshots.forEach((snap) => {
+          if (!snap.exists()) return;
           const u = snap.val();
-          const row = document.createElement("label");
-          row.className = "row-flex";
-          row.innerHTML = `<input type="checkbox" value="${esc(key)}" /> <img class="avatar" src="${esc(getAvatar(u.avatarUrl))}" alt="" /> <span>${esc(displayNameOf(u))}</span>`;
+          state.groupFriendLookup[u.usernameKey] = u;
+          const row = document.createElement("button");
+          row.type = "button";
+          row.className = "chat-item";
+          row.dataset.groupMemberKey = u.usernameKey;
+          row.innerHTML = `<div class="row-flex"><img class="avatar" src="${esc(getAvatar(u.avatarUrl))}" alt="" /><div><div class="chat-name">${esc(displayNameOf(u))}</div><div class="chat-preview">@${esc(u.username)}</div></div></div>`;
           list.appendChild(row);
-        }
+        });
       }
 
       state.groupAvatarDraft = "";
@@ -1206,7 +1214,7 @@
       }
 
       const description = $("groupDescriptionInput").value.trim().slice(0, 160);
-      const selected = Array.from($("groupFriendsList").querySelectorAll('input[type="checkbox"]:checked')).map((el) => el.value);
+      const selected = Array.from(state.selectedGroupMembers);
       const members = { [state.user.usernameKey]: true };
       selected.forEach((id) => { if (state.friends[id]) members[id] = true; });
 
@@ -1551,26 +1559,34 @@
 
     function renderSearch(items) {
       const root = $("searchResults");
-      root.innerHTML = "";
-      if (!items.length) {
-        root.innerHTML = '<div class="ghost">Пользователи/группы не найдены</div>';
+      const filteredUsers = items.filter((item) => item.type !== "group");
+      state.searchUsers = Object.fromEntries(filteredUsers.map((user) => [user.usernameKey, user]));
+
+      if (!filteredUsers.length) {
+        if (!root.querySelector("[data-search-empty='true']")) {
+          root.innerHTML = '<div class="ghost" data-search-empty="true">Пользователи не найдены</div>';
+        }
         return;
       }
+      const existing = new Map(Array.from(root.querySelectorAll("[data-search-user-key]")).map((el) => [el.dataset.searchUserKey, el]));
+      const nextKeys = new Set();
+      root.querySelector("[data-search-empty='true']")?.remove();
 
-      items.forEach((item) => {
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "chat-item";
-
-        if (item.type === "group") {
-          btn.innerHTML = `<div class="row-flex"><img class="avatar" src="${esc(getAvatar(item.avatarUrl))}" alt="" /><div><div class="chat-name">${esc(item.name)}</div><div class="chat-preview">${esc(item.description || "Групповой чат")}</div></div></div>`;
-          btn.addEventListener("click", () => openGroupDialog(item));
-        } else {
-          btn.innerHTML = `<div class="row-flex"><img class="avatar" src="${esc(getAvatar(item.avatarUrl))}" alt="" /><div><div class="chat-name">${esc(displayNameOf(item))}</div><div class="chat-preview">@${esc(item.username)} · ${esc(item.status || "")}</div></div></div>`;
-          btn.addEventListener("click", () => openPrivateDialog(item));
+      filteredUsers.forEach((item) => {
+        nextKeys.add(item.usernameKey);
+        let btn = existing.get(item.usernameKey);
+        if (!btn) {
+          btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "chat-item";
+          btn.dataset.searchUserKey = item.usernameKey;
+          root.appendChild(btn);
         }
+        btn.innerHTML = `<div class="row-flex"><img class="avatar" src="${esc(getAvatar(item.avatarUrl))}" alt="" /><div><div class="chat-name">${esc(displayNameOf(item))}</div><div class="chat-preview">@${esc(item.username)} · ${esc(item.status || "")}</div></div></div>`;
+      });
 
-        root.appendChild(btn);
+      existing.forEach((node, key) => {
+        if (!nextKeys.has(key)) node.remove();
       });
     }
 
@@ -1984,6 +2000,14 @@
         }, 220);
       });
 
+      $("searchResults").addEventListener("click", (event) => {
+        const row = event.target.closest("[data-search-user-key]");
+        if (!row) return;
+        const user = state.searchUsers[row.dataset.searchUserKey];
+        if (!user) return;
+        openPrivateDialog(user).catch(() => {});
+      });
+
       $("composer").addEventListener("submit", async (event) => {
         event.preventDefault();
         if (!state.user || !state.activeChat || isSendingMessage) return;
@@ -2074,6 +2098,19 @@
       $("inlineDeleteBtn").addEventListener("click", () => deleteSelectedMessage().catch(() => {}));
 
       $("createGroupBtn").addEventListener("click", () => openGroupModal().catch(() => {}));
+      $("groupFriendsList").addEventListener("click", (event) => {
+        const row = event.target.closest("[data-group-member-key]");
+        if (!row) return;
+        const key = row.dataset.groupMemberKey;
+        if (!state.groupFriendLookup[key]) return;
+        if (state.selectedGroupMembers.has(key)) {
+          state.selectedGroupMembers.delete(key);
+          row.classList.remove("active");
+        } else {
+          state.selectedGroupMembers.add(key);
+          row.classList.add("active");
+        }
+      });
       $("groupCancelBtn").addEventListener("click", () => { $("groupModal").style.display = "none"; });
       $("groupCreateBtn").addEventListener("click", () => createGroupFromModal().catch(() => {}));
       $("groupAvatarInput").addEventListener("change", async (event) => {
