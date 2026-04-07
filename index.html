@@ -49,6 +49,15 @@
     button:active { transform: scale(0.98); }
     button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 
+
+    button:focus-visible,
+    .input:focus-visible,
+    textarea:focus-visible {
+      outline: 2px solid #94b8a4;
+      outline-offset: 1px;
+    }
+
+
     #authPage {
       min-height: 100dvh;
       display: grid;
@@ -255,7 +264,7 @@
 
     .chat-meta {
       margin-top: 4px;
-      color: var(--muted);
+      color: #5f5f5c;
       font-size: .82rem;
     }
 
@@ -280,12 +289,12 @@
       flex: 1;
       min-height: 0;
       overflow-y: auto;
-      padding: 26px 22px;
+      padding: 24px 16px;
       background: var(--bg);
     }
 
     #messages {
-      width: min(100%, 640px);
+      width: min(100%, 720px);
       margin: 0 auto;
       display: flex;
       flex-direction: column;
@@ -558,26 +567,57 @@
     analyticsSupported().then((ok) => { if (ok) getAnalytics(app); }).catch(() => {});
 
     const LS_SESSION = "messenger_session_v4";
+    const MAX_MESSAGE_LENGTH = 1500;
     const $ = (id) => document.getElementById(id);
 
-    let mode = "login";
-    let me = null;
-    let activePeer = null;
-    let activeChatId = null;
-    let dialogsUnsub = null;
-    let messagesUnsub = null;
-    let presenceUnsub = null;
-    let isAuthSubmitting = false;
-    let isSendingMessage = false;
+    const appState = {
+      authMode: "login",
+      currentUser: null,
+      activePeer: "",
+      activeChatId: "",
+      isAuthSubmitting: false,
+      isSendingMessage: false,
+      unsubscribers: {
+        dialogs: null,
+        messages: null,
+        presence: null
+      }
+    };
 
-    function esc(v) {
-      return String(v).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
-    }
+    const toKey = (value) => String(value || "").trim().toLowerCase();
+    const isValidLogin = (login) => /^[a-zA-Z0-9_.-]{3,24}$/.test(String(login || ""));
+    const chatIdByUsers = (a, b) => [toKey(a), toKey(b)].sort().join("__");
+
+    const escapeHtml = (value) => String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+
+    const formatTime = (ts) => {
+      if (!Number(ts)) return "--:--";
+      return new Date(ts).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    };
+
+    const debounce = (fn, delay = 220) => {
+      let timer = null;
+      return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => fn(...args), delay);
+      };
+    };
 
     function setStatus(text, isError = false) {
       const el = $("authStatus");
       el.textContent = text;
       el.className = isError ? "error" : "";
+    }
+
+    function setComposerEnabled(enabled) {
+      $("messageInput").disabled = !enabled;
+      $("sendBtn").disabled = !enabled || appState.isSendingMessage;
+      $("messageInput").placeholder = enabled ? "Напишите сообщение..." : "Откройте диалог, чтобы писать сообщения";
     }
 
     function clearAuthArtifacts() {
@@ -588,42 +628,60 @@
     }
 
     function setAuthLoading(loading) {
-      isAuthSubmitting = loading;
-      ["authSubmit", "loginTab", "registerTab", "usernameInput", "passwordInput"].forEach((id) => { $(id).disabled = loading; });
-      $("authSubmit").textContent = loading ? (mode === "login" ? "Вход..." : "Регистрация...") : (mode === "login" ? "Войти" : "Зарегистрироваться");
-    }
-
-    function guardAuthAccess() {
-      if (me) return true;
-      $("chatPage").style.display = "none";
-      $("authPage").style.display = "grid";
-      return false;
-    }
-
-    const toKey = (login) => login.trim().toLowerCase();
-    const isValidLogin = (login) => /^[a-zA-Z0-9_.-]{3,24}$/.test(login);
-    const chatIdByUsers = (a, b) => [toKey(a), toKey(b)].sort().join("__");
-    const formatTime = (ts) => ts ? new Date(ts).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" }) : "--:--";
-
-    async function hashPassword(raw) {
-      const data = new TextEncoder().encode(raw);
-      const hash = await crypto.subtle.digest("SHA-256", data);
-      return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, "0")).join("");
+      appState.isAuthSubmitting = loading;
+      ["authSubmit", "loginTab", "registerTab", "usernameInput", "passwordInput"].forEach((id) => {
+        const node = $(id);
+        if (node) node.disabled = loading;
+      });
+      $("authSubmit").textContent = loading
+        ? (appState.authMode === "login" ? "Вход..." : "Регистрация...")
+        : (appState.authMode === "login" ? "Войти" : "Зарегистрироваться");
     }
 
     function setAuthMode(nextMode) {
-      if (isAuthSubmitting) return;
-      mode = nextMode;
-      $("loginTab").classList.toggle("active", mode === "login");
-      $("registerTab").classList.toggle("active", mode === "register");
-      $("authSubmit").textContent = mode === "login" ? "Войти" : "Зарегистрироваться";
-      setStatus(mode === "login" ? "Режим входа." : "Режим регистрации.");
+      if (appState.isAuthSubmitting) return;
+      appState.authMode = nextMode;
+      $("loginTab").classList.toggle("active", nextMode === "login");
+      $("registerTab").classList.toggle("active", nextMode === "register");
+      $("authSubmit").textContent = nextMode === "login" ? "Войти" : "Зарегистрироваться";
+      setStatus(nextMode === "login" ? "Режим входа." : "Режим регистрации.");
     }
 
-    function setMobileState(state) {
+    function setMobileState(stateName) {
       const root = $("chatPage");
       root.classList.remove("state-list", "state-chat");
-      root.classList.add(state);
+      root.classList.add(stateName);
+    }
+
+    function guardAuthAccess() {
+      if (appState.currentUser) return true;
+      $("chatPage").style.display = "none";
+      $("authPage").style.display = "grid";
+      setComposerEnabled(false);
+      return false;
+    }
+
+    function stopWatcher(name) {
+      const unwatch = appState.unsubscribers[name];
+      if (typeof unwatch === "function") unwatch();
+      appState.unsubscribers[name] = null;
+    }
+
+    function stopAllWatchers() {
+      stopWatcher("dialogs");
+      stopWatcher("messages");
+      stopWatcher("presence");
+    }
+
+    function resetActiveChatUi(message = "Найдите пользователя по логину, откройте диалог и начните переписку.") {
+      appState.activePeer = "";
+      appState.activeChatId = "";
+      $("chatTitle").textContent = "Выберите диалог";
+      $("presence").textContent = "Статус: —";
+      $("chatCode").textContent = "chat: ---";
+      $("deleteChatBtn").disabled = true;
+      $("messages").innerHTML = `<div class="empty">${escapeHtml(message)}</div>`;
+      setComposerEnabled(false);
     }
 
     function renderSearch(users) {
@@ -633,82 +691,86 @@
         root.innerHTML = '<div class="ghost">Пользователи не найдены</div>';
         return;
       }
-
-      users.forEach((u) => {
+      const fragment = document.createDocumentFragment();
+      users.forEach((user) => {
         const btn = document.createElement("button");
         btn.type = "button";
-        btn.className = `chat-item ${activePeer === u.username ? "active" : ""}`;
-        btn.innerHTML = `<div class="chat-main"><span class="chat-name">@${esc(u.username)}</span><span class="chat-time">новый</span></div><div class="chat-preview">Открыть диалог</div>`;
-        btn.addEventListener("click", () => openDialog(u.username));
-        root.appendChild(btn);
+        btn.className = `chat-item ${appState.activePeer === user.username ? "active" : ""}`;
+        btn.dataset.peer = user.username;
+        btn.innerHTML = `<div class="chat-main"><span class="chat-name">@${escapeHtml(user.username)}</span><span class="chat-time">новый</span></div><div class="chat-preview">Открыть диалог</div>`;
+        fragment.appendChild(btn);
       });
+      root.appendChild(fragment);
     }
 
     function renderDialogs(dialogs) {
       const root = $("dialogsList");
       root.innerHTML = "";
-
       if (!dialogs.length) {
         root.innerHTML = '<div class="ghost">Пока нет диалогов</div>';
         return;
       }
-
-      dialogs.forEach((d) => {
+      const fragment = document.createDocumentFragment();
+      dialogs.forEach((dialog) => {
         const item = document.createElement("button");
         item.type = "button";
-        item.className = `chat-item ${activePeer === d.peer ? "active" : ""}`;
+        item.className = `chat-item ${appState.activePeer === dialog.peer ? "active" : ""}`;
+        item.dataset.peer = dialog.peer;
         item.innerHTML = `
           <div class="chat-main">
-            <span class="chat-name">@${esc(d.peer)}</span>
-            <span class="chat-time">${formatTime(d.lastAt)}</span>
+            <span class="chat-name">@${escapeHtml(dialog.peer)}</span>
+            <span class="chat-time">${formatTime(dialog.lastAt)}</span>
           </div>
-          <div class="chat-preview">${esc(d.lastMessage || "Пусто")}</div>
+          <div class="chat-preview">${escapeHtml(dialog.lastMessage || "Пусто")}</div>
         `;
-        item.addEventListener("click", () => openDialog(d.peer));
-        root.appendChild(item);
+        fragment.appendChild(item);
       });
+      root.appendChild(fragment);
     }
 
     function renderMessages(items) {
       const root = $("messages");
       root.innerHTML = "";
-
       if (!items.length) {
         root.innerHTML = '<div class="empty">Диалог открыт. Напишите первое сообщение.</div>';
         return;
       }
-
-      items.forEach((m) => {
-        const own = m.fromKey === me.usernameKey;
+      const fragment = document.createDocumentFragment();
+      items.forEach((message) => {
+        const isMine = appState.currentUser && message.fromKey === appState.currentUser.usernameKey;
         const el = document.createElement("article");
-        el.className = `message ${own ? "outgoing" : "incoming"}`;
+        el.className = `message ${isMine ? "outgoing" : "incoming"}`;
         el.innerHTML = `
           <div class="message-block">
             <div class="message-head">
-              <span>@${esc(m.from)}</span>
-              <time>${formatTime(m.createdAt)}</time>
+              <span>@${escapeHtml(message.from || "unknown")}</span>
+              <time>${formatTime(message.createdAt)}</time>
             </div>
-            <div class="message-text">${esc(m.text)}</div>
+            <div class="message-text">${escapeHtml(message.text || "")}</div>
           </div>
         `;
-
-        if (own) {
+        if (isMine) {
           const actions = document.createElement("div");
           actions.className = "message-actions";
           const removeBtn = document.createElement("button");
           removeBtn.type = "button";
           removeBtn.className = "delete-msg";
           removeBtn.textContent = "Удалить";
-          removeBtn.addEventListener("click", () => deleteMessage(m.id).catch(() => {}));
+          removeBtn.dataset.messageId = message.id;
           actions.appendChild(removeBtn);
           el.querySelector(".message-block").appendChild(actions);
         }
-
-        root.appendChild(el);
+        fragment.appendChild(el);
       });
-
+      root.appendChild(fragment);
       const viewport = $("messageViewport");
       viewport.scrollTop = viewport.scrollHeight;
+    }
+
+    async function hashPassword(raw) {
+      const data = new TextEncoder().encode(String(raw || ""));
+      const hash = await crypto.subtle.digest("SHA-256", data);
+      return Array.from(new Uint8Array(hash)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
     }
 
     async function syncChatPreview(chatId, leftUsername, rightUsername) {
@@ -726,118 +788,143 @@
         return;
       }
 
-      const safeText = String(lastMessage.text || "").slice(0, 120);
-      const safeDate = Number(lastMessage.createdAt || Date.now());
-
+      const previewText = String(lastMessage.text || "").slice(0, 120);
+      const previewDate = Number(lastMessage.createdAt || Date.now());
       await update(ref(db), {
-        [`userChats/${leftKey}/${chatId}`]: { peer: rightUsername, chatId, lastMessage: safeText, lastAt: safeDate },
-        [`userChats/${rightKey}/${chatId}`]: { peer: leftUsername, chatId, lastMessage: safeText, lastAt: safeDate }
+        [`userChats/${leftKey}/${chatId}`]: { peer: rightUsername, chatId, lastMessage: previewText, lastAt: previewDate },
+        [`userChats/${rightKey}/${chatId}`]: { peer: leftUsername, chatId, lastMessage: previewText, lastAt: previewDate }
       });
     }
 
     async function register(login, password) {
-      const usernameKey = toKey(login);
+      const username = String(login || "").trim();
+      const usernameKey = toKey(username);
       const userRef = ref(db, `users/${usernameKey}`);
-      const existsSnap = await get(userRef);
-      if (existsSnap.exists()) throw new Error("Такой логин уже занят.");
+
+      if ((await get(userRef)).exists()) {
+        throw new Error("Такой логин уже занят.");
+      }
 
       const passHash = await hashPassword(password);
-      await set(userRef, { username: login, usernameKey, passHash, createdAt: Date.now(), lastSeen: Date.now() });
-      return { username: login, usernameKey };
+      const userPayload = {
+        username,
+        usernameKey,
+        passHash,
+        createdAt: Date.now(),
+        lastSeen: Date.now()
+      };
+
+      await set(userRef, userPayload);
+      return { username, usernameKey };
     }
 
     async function login(loginValue, password) {
       const usernameKey = toKey(loginValue);
       const userSnap = await get(ref(db, `users/${usernameKey}`));
-      if (!userSnap.exists()) throw new Error("Пользователь не найден.");
-
+      if (!userSnap.exists()) {
+        throw new Error("Пользователь не найден.");
+      }
       const user = userSnap.val();
       const passHash = await hashPassword(password);
-      if (user.passHash !== passHash) throw new Error("Неверный пароль.");
-
+      if (user.passHash !== passHash) {
+        throw new Error("Неверный пароль.");
+      }
       await update(ref(db, `users/${usernameKey}`), { lastSeen: Date.now() });
-      return { username: user.username, usernameKey };
-    }
-
-    async function beginSession(user) {
-      me = user;
-      localStorage.setItem(LS_SESSION, JSON.stringify(user));
-
-      $("meLogin").textContent = `@${me.username}`;
-      $("authPage").style.display = "none";
-      $("chatPage").style.display = "grid";
-      setMobileState("state-list");
-
-      await setOnlinePresence();
-      watchDialogs();
+      return { username: user.username, usernameKey: user.usernameKey };
     }
 
     async function setOnlinePresence() {
-      const pRef = ref(db, `presence/${me.usernameKey}`);
-      await set(pRef, { username: me.username, online: true, lastSeen: serverTimestamp() });
-      onDisconnect(pRef).update({ online: false, lastSeen: serverTimestamp() });
+      const me = appState.currentUser;
+      if (!me) return;
+      const presenceRef = ref(db, `presence/${me.usernameKey}`);
+      await set(presenceRef, { username: me.username, online: true, lastSeen: serverTimestamp() });
+      onDisconnect(presenceRef).update({ online: false, lastSeen: serverTimestamp() });
     }
 
     function watchDialogs() {
-      if (dialogsUnsub) dialogsUnsub();
-      dialogsUnsub = onValue(ref(db, `userChats/${me.usernameKey}`), (snap) => {
-        const rows = Object.values(snap.val() || {}).sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
+      stopWatcher("dialogs");
+      const me = appState.currentUser;
+      if (!me) return;
+      appState.unsubscribers.dialogs = onValue(ref(db, `userChats/${me.usernameKey}`), (snap) => {
+        const rows = Object.values(snap.val() || {})
+          .filter((row) => row && !row.hidden && row.peer)
+          .sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
         renderDialogs(rows);
       });
     }
 
     function watchMessages() {
-      if (messagesUnsub) messagesUnsub();
-      const q = query(ref(db, `chats/${activeChatId}/messages`), limitToLast(200));
-      messagesUnsub = onValue(q, (snap) => {
-        const rows = Object.entries(snap.val() || {}).map(([id, value]) => ({ id, ...value })).sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+      stopWatcher("messages");
+      if (!appState.activeChatId) return;
+      const q = query(ref(db, `chats/${appState.activeChatId}/messages`), limitToLast(200));
+      appState.unsubscribers.messages = onValue(q, (snap) => {
+        const rows = Object.entries(snap.val() || {})
+          .map(([id, value]) => ({ id, ...value }))
+          .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
         renderMessages(rows);
       });
     }
 
     function watchPresence() {
-      if (presenceUnsub) presenceUnsub();
-      presenceUnsub = onValue(ref(db, `presence/${toKey(activePeer)}`), (snap) => {
+      stopWatcher("presence");
+      if (!appState.activePeer) {
+        $("presence").textContent = "Статус: —";
+        return;
+      }
+      appState.unsubscribers.presence = onValue(ref(db, `presence/${toKey(appState.activePeer)}`), (snap) => {
         const online = Boolean(snap.val()?.online);
         $("presence").textContent = `Статус: ${online ? "онлайн" : "оффлайн"}`;
       });
     }
 
-    function openDialog(peerLogin) {
+    async function openDialog(peerLogin) {
       if (!guardAuthAccess()) return;
-      activePeer = peerLogin;
-      activeChatId = chatIdByUsers(me.username, activePeer);
-      $("chatTitle").textContent = `Диалог с @${activePeer}`;
-      $("chatCode").textContent = `chat: ${activeChatId}`;
+      const safePeer = String(peerLogin || "").trim();
+      if (!isValidLogin(safePeer) || toKey(safePeer) === appState.currentUser.usernameKey) return;
+
+      appState.activePeer = safePeer;
+      appState.activeChatId = chatIdByUsers(appState.currentUser.username, safePeer);
+      $("chatTitle").textContent = `Диалог с @${safePeer}`;
+      $("chatCode").textContent = `chat: ${appState.activeChatId}`;
       $("deleteChatBtn").disabled = false;
+      setComposerEnabled(true);
       watchPresence();
       watchMessages();
       watchDialogs();
-      if (window.matchMedia("(max-width: 860px)").matches) setMobileState("state-chat");
+      if (window.matchMedia("(max-width: 860px)").matches) {
+        setMobileState("state-chat");
+      }
     }
 
     async function sendMessage(text) {
-      if (!guardAuthAccess() || !activePeer || !activeChatId) return;
-      const clean = text.trim();
+      const me = appState.currentUser;
+      if (!guardAuthAccess() || !appState.activePeer || !appState.activeChatId || !me) return;
+      const clean = String(text || "").replace(/\s+/g, " ").trim().slice(0, MAX_MESSAGE_LENGTH);
       if (!clean) return;
 
       const now = Date.now();
-      const payload = { from: me.username, fromKey: me.usernameKey, to: activePeer, text: clean, createdAt: now };
-      await push(ref(db, `chats/${activeChatId}/messages`), payload);
+      const payload = {
+        from: me.username,
+        fromKey: me.usernameKey,
+        to: appState.activePeer,
+        text: clean,
+        createdAt: now
+      };
+      await push(ref(db, `chats/${appState.activeChatId}/messages`), payload);
 
-      const myDialog = { peer: activePeer, chatId: activeChatId, lastMessage: clean.slice(0, 120), lastAt: now };
-      const peerDialog = { peer: me.username, chatId: activeChatId, lastMessage: clean.slice(0, 120), lastAt: now };
-
+      const myDialog = { peer: appState.activePeer, chatId: appState.activeChatId, lastMessage: clean.slice(0, 120), lastAt: now };
+      const peerDialog = { peer: me.username, chatId: appState.activeChatId, lastMessage: clean.slice(0, 120), lastAt: now };
       await update(ref(db), {
-        [`userChats/${me.usernameKey}/${activeChatId}`]: myDialog,
-        [`userChats/${toKey(activePeer)}/${activeChatId}`]: peerDialog,
+        [`userChats/${me.usernameKey}/${appState.activeChatId}`]: myDialog,
+        [`userChats/${toKey(appState.activePeer)}/${appState.activeChatId}`]: peerDialog,
         [`users/${me.usernameKey}/lastSeen`]: now
       });
     }
 
     async function deleteMessage(messageId) {
-      if (!guardAuthAccess() || !activeChatId || !activePeer || !messageId) return;
-      const messageRef = ref(db, `chats/${activeChatId}/messages/${messageId}`);
+      const me = appState.currentUser;
+      if (!guardAuthAccess() || !appState.activeChatId || !appState.activePeer || !messageId || !me) return;
+      const messageRef = ref(db, `chats/${appState.activeChatId}/messages/${messageId}`);
       const snap = await get(messageRef);
       if (!snap.exists()) return;
       const message = snap.val();
@@ -846,14 +933,16 @@
         return;
       }
       await remove(messageRef);
-      await syncChatPreview(activeChatId, me.username, activePeer);
+      await syncChatPreview(appState.activeChatId, me.username, appState.activePeer);
     }
 
-    async function deleteChatWithPeer(peerUsername = activePeer) {
+    async function deleteChatWithPeer() {
+      const me = appState.currentUser;
+      const peerUsername = appState.activePeer;
       if (!guardAuthAccess() || !me || !peerUsername) return;
+
       const chatId = chatIdByUsers(me.username, peerUsername);
       const peerKey = toKey(peerUsername);
-
       const approved = window.confirm(`Удалить чат с @${peerUsername}? Это действие нельзя отменить.`);
       if (!approved) return;
 
@@ -863,18 +952,10 @@
         [`userChats/${peerKey}/${chatId}`]: null
       });
 
-      if (activeChatId === chatId) {
-        if (messagesUnsub) messagesUnsub();
-        if (presenceUnsub) presenceUnsub();
-        messagesUnsub = null;
-        presenceUnsub = null;
-        activePeer = null;
-        activeChatId = null;
-        $("chatTitle").textContent = "Выберите диалог";
-        $("presence").textContent = "Статус: —";
-        $("chatCode").textContent = "chat: ---";
-        $("deleteChatBtn").disabled = true;
-        $("messages").innerHTML = '<div class="empty">Чат удалён. Откройте новый диалог.</div>';
+      if (appState.activeChatId === chatId) {
+        stopWatcher("messages");
+        stopWatcher("presence");
+        resetActiveChatUi("Чат удалён. Откройте новый диалог.");
       }
     }
 
@@ -886,57 +967,56 @@
         return;
       }
 
-      const mapRows = (raw) => Object.values(raw || {}).filter((u) => u.usernameKey !== me.usernameKey).filter((u) => String(u.usernameKey || "").startsWith(term)).slice(0, 30).map((u) => ({ username: u.username }));
+      const mapRows = (raw) => Object.values(raw || {})
+        .filter((user) => user?.usernameKey !== appState.currentUser.usernameKey)
+        .filter((user) => String(user.usernameKey || "").startsWith(term))
+        .slice(0, 30)
+        .map((user) => ({ username: user.username }));
 
       try {
-        const q = query(ref(db, "users"), orderByChild("usernameKey"), startAt(term), endAt(`${term}\uf8ff`));
+        const q = query(ref(db, "users"), orderByChild("usernameKey"), startAt(term), endAt(`${term}`));
         const snap = await get(q);
         renderSearch(mapRows(snap.val()));
-      } catch (err) {
-        const message = String(err?.message || "");
-        const needsIndex = message.includes("Index not defined") || message.includes(".indexOn");
-        if (needsIndex) {
-          try {
-            const fullSnap = await get(ref(db, "users"));
-            renderSearch(mapRows(fullSnap.val()));
-            return;
-          } catch (fallbackErr) {
-            console.error("Search fallback error:", fallbackErr);
-          }
+      } catch (error) {
+        const message = String(error?.message || "");
+        const missingIndex = message.includes("Index not defined") || message.includes(".indexOn");
+        if (missingIndex) {
+          const fullSnap = await get(ref(db, "users"));
+          renderSearch(mapRows(fullSnap.val()));
+          return;
         }
-        console.error("Search error:", err);
+        console.error("Search error:", error);
         renderSearch([]);
-        $("searchResults").innerHTML = '<div class="ghost">Ошибка поиска. Проверьте index в Firebase.</div>';
       }
     }
 
+    async function beginSession(user) {
+      appState.currentUser = user;
+      localStorage.setItem(LS_SESSION, JSON.stringify(user));
+      $("meLogin").textContent = `@${user.username}`;
+      $("authPage").style.display = "none";
+      $("chatPage").style.display = "grid";
+      setMobileState("state-list");
+      resetActiveChatUi();
+      await setOnlinePresence();
+      watchDialogs();
+    }
+
     async function logout() {
+      const me = appState.currentUser;
       if (me?.usernameKey) {
         await update(ref(db, `presence/${me.usernameKey}`), { online: false, lastSeen: serverTimestamp() });
       }
 
-      if (dialogsUnsub) dialogsUnsub();
-      if (messagesUnsub) messagesUnsub();
-      if (presenceUnsub) presenceUnsub();
-      dialogsUnsub = null;
-      messagesUnsub = null;
-      presenceUnsub = null;
-
-      me = null;
-      activePeer = null;
-      activeChatId = null;
+      stopAllWatchers();
+      appState.currentUser = null;
       clearAuthArtifacts();
-
       $("chatPage").style.display = "none";
       $("authPage").style.display = "grid";
-      $("chatTitle").textContent = "Выберите диалог";
-      $("presence").textContent = "Статус: —";
-      $("chatCode").textContent = "chat: ---";
-      $("deleteChatBtn").disabled = true;
-      $("messages").innerHTML = '<div class="empty">Найдите пользователя по логину, откройте диалог и начните переписку.</div>';
       $("dialogsList").innerHTML = "";
       $("searchResults").innerHTML = "";
       $("messageInput").value = "";
+      resetActiveChatUi();
       setMobileState("state-list");
     }
 
@@ -948,16 +1028,16 @@
         if (!session?.usernameKey) return;
         const snap = await get(ref(db, `users/${session.usernameKey}`));
         clearAuthArtifacts();
-        if (snap.exists()) {
-          const savedUsername = String(snap.val()?.username || "").trim();
-          if (savedUsername) {
-            $("usernameInput").value = savedUsername;
-            $("passwordInput").value = "";
-          }
-          setStatus("Сессия найдена. Введите пароль для входа.");
-        } else {
+        if (!snap.exists()) {
           setStatus("Сессия устарела. Войдите заново.");
+          return;
         }
+        const savedUsername = String(snap.val()?.username || "").trim();
+        if (savedUsername) {
+          $("usernameInput").value = savedUsername;
+          $("passwordInput").value = "";
+        }
+        setStatus("Сессия найдена. Введите пароль для входа.");
       } catch {
         clearAuthArtifacts();
       }
@@ -967,9 +1047,10 @@
       $("loginTab").addEventListener("click", () => setAuthMode("login"));
       $("registerTab").addEventListener("click", () => setAuthMode("register"));
 
-      $("authForm").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        if (isAuthSubmitting) return;
+      $("authForm").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (appState.isAuthSubmitting) return;
+
         const loginValue = $("usernameInput").value.trim();
         const password = $("passwordInput").value;
         if (!isValidLogin(loginValue)) {
@@ -983,54 +1064,82 @@
 
         try {
           setAuthLoading(true);
-          setStatus(mode === "login" ? "Выполняется вход..." : "Выполняется регистрация...");
-          const user = mode === "login" ? await login(loginValue, password) : await register(loginValue, password);
-          setStatus("Успешно.");
+          setStatus(appState.authMode === "login" ? "Выполняется вход..." : "Выполняется регистрация...");
+          const user = appState.authMode === "login"
+            ? await login(loginValue, password)
+            : await register(loginValue, password);
           await beginSession(user);
-        } catch (err) {
-          setStatus(err?.message || "Ошибка авторизации.", true);
+          setStatus("Успешно.");
+        } catch (error) {
+          setStatus(error?.message || "Ошибка авторизации.", true);
         } finally {
           setAuthLoading(false);
         }
       });
 
-      let timer = null;
-      $("searchInput").addEventListener("input", () => {
-        clearTimeout(timer);
-        const value = $("searchInput").value;
-        timer = setTimeout(() => { if (me) searchUsers(value).catch(() => renderSearch([])); }, 220);
+      const debouncedSearch = debounce((value) => {
+        if (appState.currentUser) searchUsers(value).catch(() => renderSearch([]));
+      }, 220);
+
+      $("searchInput").addEventListener("input", (event) => {
+        debouncedSearch(event.target.value);
       });
 
-      $("composer").addEventListener("submit", async (e) => {
-        e.preventDefault();
-        if (!me || !activeChatId || isSendingMessage) return;
+      $("searchResults").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-peer]");
+        if (!button) return;
+        openDialog(button.dataset.peer).catch(() => {});
+      });
+
+      $("dialogsList").addEventListener("click", (event) => {
+        const button = event.target.closest("[data-peer]");
+        if (!button) return;
+        openDialog(button.dataset.peer).catch(() => {});
+      });
+
+      $("messages").addEventListener("click", (event) => {
+        const removeButton = event.target.closest("[data-message-id]");
+        if (!removeButton) return;
+        deleteMessage(removeButton.dataset.messageId).catch(() => {});
+      });
+
+      $("composer").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!appState.currentUser || !appState.activeChatId || appState.isSendingMessage) return;
         const input = $("messageInput");
         const text = input.value;
         input.value = "";
-        isSendingMessage = true;
+        appState.isSendingMessage = true;
         $("sendBtn").disabled = true;
         $("sendBtn").textContent = "Отправка...";
-
         try {
           await sendMessage(text);
         } catch {
           input.value = text;
         } finally {
-          isSendingMessage = false;
+          appState.isSendingMessage = false;
           $("sendBtn").disabled = false;
           $("sendBtn").textContent = "Отправить";
+        }
+      });
+
+      $("messageInput").addEventListener("keydown", (event) => {
+        if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          $("sendBtn").click();
         }
       });
 
       $("logoutBtn").addEventListener("click", () => logout().catch(() => {}));
       $("deleteChatBtn").addEventListener("click", () => deleteChatWithPeer().catch(() => {}));
       $("mobileBack").addEventListener("click", () => setMobileState("state-list"));
-
       window.addEventListener("popstate", () => { guardAuthAccess(); });
     }
 
     function init() {
       guardAuthAccess();
+      setAuthMode("login");
+      setComposerEnabled(false);
       bindEvents();
       restoreSession().catch(() => {});
     }
