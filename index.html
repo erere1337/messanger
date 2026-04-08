@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Мессенджер · Emoji‑аватары</title>
+  <title>Мессенджер</title>
   <style>
     :root {
       --bg: #ffffff;
@@ -49,8 +49,8 @@
     button:active { transform: scale(0.98); }
     button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
 
-    /* Аватар-эмодзи */
-    .avatar-emoji {
+    /* Аватар по умолчанию */
+    .avatar {
       width: 42px;
       height: 42px;
       border-radius: 50%;
@@ -74,38 +74,12 @@
       justify-content: center;
       font-size: 3rem;
     }
-    /* Исправление: аватар-эмодзи внутри профиля должен быть крупным */
-    .profile-page-avatar .avatar {
-      width: 96px;
-      height: 96px;
-      font-size: 3rem;
-      background: transparent;
-      border: none;
-    }
-    .avatar {
-      width: 42px;
-      height: 42px;
-      border-radius: 50%;
-      border: 1px solid var(--border);
-      object-fit: cover;
-      background: var(--surface);
-      flex-shrink: 0;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.6rem;
-    }
 
     /* Список друзей в профиле со скроллом */
     #profileFriendsList {
       max-height: 300px;
       overflow-y: auto;
       padding-right: 6px;
-    }
-
-    /* Улучшение модалки эмодзи */
-    #emojiModal {
-      z-index: 1300;
     }
 
     #authPage {
@@ -372,7 +346,6 @@
       gap: 6px;
     }
 
-    /* Кнопка прокрутки вниз */
     #scrollDownBtn {
       position: fixed;
       right: 24px;
@@ -402,17 +375,6 @@
       gap: 8px;
     }
 
-    .edit-group-btn {
-      background: transparent;
-      border: none;
-      padding: 4px;
-      font-size: 1.2rem;
-      cursor: pointer;
-      opacity: 0.7;
-    }
-
-    .edit-group-btn:hover { opacity: 1; }
-
     .chat-meta {
       margin-top: 4px;
       color: var(--muted);
@@ -433,8 +395,6 @@
       width: auto;
       background: var(--bg);
     }
-
-    #chatCode { color: var(--muted); font-size: .76rem; }
 
     .message-viewport {
       flex: 1;
@@ -662,37 +622,6 @@
       flex: 1;
     }
 
-    .group-participant-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 8px 0;
-    }
-
-    .group-participant-item.self {
-      opacity: 0.9;
-      cursor: default;
-    }
-
-    /* Emoji picker grid */
-    .emoji-grid {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 12px;
-      padding: 16px;
-    }
-    .emoji-option {
-      font-size: 2rem;
-      cursor: pointer;
-      text-align: center;
-      padding: 8px;
-      border-radius: 12px;
-      transition: background 0.1s;
-    }
-    .emoji-option:hover {
-      background: var(--bg-soft);
-    }
-
     @media (max-width: 860px) {
       #chatPage { grid-template-columns: 1fr; }
       .sidebar { border-right: 0; }
@@ -704,7 +633,6 @@
       .mobile-back { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; }
       .chat-header { min-height: 68px; padding: 10px 12px; }
       .header-controls { gap: 6px; }
-      #chatCode { display: none; }
       .composer-inner { grid-template-columns: 1fr; }
       #sendBtn { min-height: 46px; width: 100%; }
       #scrollDownBtn { bottom: 130px; right: 16px; }
@@ -795,35 +723,6 @@
       text-transform: uppercase;
       letter-spacing: 0.03em;
     }
-
-    .section-title-menu {
-      position: relative;
-    }
-
-    #sectionMenu {
-      position: absolute;
-      right: 0;
-      top: 100%;
-      margin-top: 4px;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      overflow: hidden;
-      z-index: 30;
-      min-width: 160px;
-    }
-
-    #sectionMenu button {
-      width: 100%;
-      text-align: left;
-      padding: 10px 14px;
-      border: 0;
-      border-radius: 0;
-      background: transparent;
-    }
-
-    #sectionMenu button:hover { background: var(--surface); }
   </style>
 </head>
 <body>
@@ -877,12 +776,6 @@
       <div id="searchResults" class="list"></div>
       <div class="section-title">
         <span>Чаты</span>
-        <div class="section-title-menu">
-          <button id="sectionMenuBtn" class="subtle-btn" style="padding:4px 8px;">⋮</button>
-          <div id="sectionMenu" style="display:none;">
-            <button id="sectionCreateGroupBtn">Создать группу</button>
-          </div>
-        </div>
       </div>
       <div id="dialogsList" class="list"></div>
     </aside>
@@ -901,13 +794,11 @@
             <div style="margin-left:8px;">
               <div class="chat-title" id="chatTitle">
                 <span id="chatTitleText"></span>
-                <button id="editGroupBtn" class="edit-group-btn" style="display:none;" title="Редактировать группу">✎</button>
               </div>
               <div class="chat-meta" id="presence">Статус: —</div>
             </div>
           </div>
           <div class="header-controls" style="margin-left:auto;">
-            <div id="chatCode" style="display:none;">chat: ---</div>
             <div id="typingIndicator" class="typing-pill" style="display:none;">
               🔤 Пишут: <span id="typingUsers">none</span>
             </div>
@@ -947,7 +838,6 @@
             <button id="inlineFriendActionBtn" class="subtle-btn" type="button">Добавить в друзья</button>
           </div>
         </div>
-        <div id="groupParticipantsBox" class="friend-list" style="display:none;"></div>
       </aside>
     </main>
   </section>
@@ -958,7 +848,7 @@
         <button id="profileBackBtn" class="subtle-btn">← Назад</button>
         <button id="profileLogoutBtn" class="danger" style="min-height:36px; padding:0 16px;">Выйти</button>
       </div>
-      <div id="profileAvatar" class="profile-page-avatar"></div>
+      <div id="profileAvatar" class="profile-page-avatar">👤</div>
       <div class="profile-page-name" id="profileName">Имя</div>
       <div class="profile-page-user" id="profileUsername">@username</div>
       <div class="profile-page-status" id="profileStatusText">Статус: —</div>
@@ -972,10 +862,6 @@
         <div class="field">
           <label for="profileStatusInput">Статус</label>
           <input id="profileStatusInput" class="input" maxlength="120" />
-        </div>
-        <div class="field">
-          <label>Аватар (Emoji)</label>
-          <button id="profileChooseEmojiBtn" type="button" class="subtle-btn" style="width:100%;">🎨 Выбрать Emoji</button>
         </div>
       </div>
 
@@ -993,85 +879,12 @@
     </div>
   </section>
 
-  <!-- Emoji Picker Modal -->
-  <div id="emojiModal" class="modal-backdrop" role="dialog">
-    <div class="modal-card">
-      <h3>Выберите эмодзи</h3>
-      <div id="emojiGrid" class="emoji-grid"></div>
-      <div class="modal-actions">
-        <button id="emojiCancelBtn" class="subtle-btn">Отмена</button>
-      </div>
-    </div>
-  </div>
-
   <div id="forwardModal" class="modal-backdrop" role="dialog" aria-modal="true">
     <div class="modal-card">
       <h3>Переслать сообщение</h3>
       <div id="forwardTargets" class="friend-list"></div>
       <div class="modal-actions">
         <button id="forwardCloseBtn" type="button" class="subtle-btn">Закрыть</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="groupModal" class="modal-backdrop" role="dialog" aria-modal="true">
-    <div class="modal-card">
-      <h3>Создать группу</h3>
-      <div class="field">
-        <label for="groupNameInput">Название</label>
-        <input id="groupNameInput" class="input" maxlength="80" />
-      </div>
-      <div class="field">
-        <label for="groupDescriptionInput">Описание</label>
-        <input id="groupDescriptionInput" class="input" maxlength="160" />
-      </div>
-      <div class="field">
-        <label>Аватар группы (Emoji)</label>
-        <button id="groupChooseEmojiBtn" type="button" class="subtle-btn" style="width:100%;">🎨 Выбрать Emoji</button>
-        <input type="hidden" id="groupAvatarEmoji" value="🎉" />
-      </div>
-      <div class="field">
-        <label>Участники (только друзья)</label>
-        <div id="groupFriendsList" class="friend-list"></div>
-      </div>
-      <div class="modal-actions">
-        <button id="groupCancelBtn" type="button" class="subtle-btn">Отмена</button>
-        <button id="groupCreateBtn" type="button" class="primary-btn" style="width:auto; min-height:40px; margin-top:0;">Создать</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="editGroupModal" class="modal-backdrop" role="dialog" aria-modal="true">
-    <div class="modal-card">
-      <h3>Редактировать группу</h3>
-      <div class="field">
-        <label for="editGroupNameInput">Название</label>
-        <input id="editGroupNameInput" class="input" maxlength="80" />
-      </div>
-      <div class="field">
-        <label for="editGroupDescInput">Описание</label>
-        <input id="editGroupDescInput" class="input" maxlength="160" />
-      </div>
-      <div class="field">
-        <label>Аватар группы (Emoji)</label>
-        <button id="editGroupChooseEmojiBtn" type="button" class="subtle-btn" style="width:100%;">🎨 Выбрать Emoji</button>
-        <input type="hidden" id="editGroupAvatarEmoji" />
-      </div>
-      <div class="modal-actions">
-        <button id="editGroupCancelBtn" type="button" class="subtle-btn">Отмена</button>
-        <button id="editGroupSaveBtn" type="button" class="primary-btn" style="width:auto; min-height:40px; margin-top:0;">Сохранить</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="adminTransferModal" class="modal-backdrop" role="dialog" aria-modal="true">
-    <div class="modal-card">
-      <h3>Передача прав администратора</h3>
-      <div class="ghost" id="adminTransferHint">Выберите участника группы</div>
-      <div id="adminTransferList" class="friend-list"></div>
-      <div class="modal-actions">
-        <button id="adminTransferCancelBtn" type="button" class="subtle-btn">Отмена</button>
-        <button id="adminTransferConfirmBtn" type="button" class="primary-btn" style="width:auto;">Передать и выйти</button>
       </div>
     </div>
   </div>
@@ -1130,8 +943,7 @@
       endAt,
       limitToLast,
       onValue,
-      onDisconnect,
-      serverTimestamp
+      onDisconnect
     } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
 
     const firebaseConfig = {
@@ -1146,43 +958,12 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const LS_SESSION = "messenger_session_v7";
+    const LS_SESSION = "messenger_session_v9";
     const $ = (id) => document.getElementById(id);
-    const DEFAULT_AVATAR_EMOJI = "😶";
+    const DEFAULT_AVATAR = "👤";
 
-    // ---------- Emoji picker ----------
-    const EMOJI_LIST = ["😀","😃","😄","😁","😆","😅","😂","🤣","😊","😇","🙂","🙃","😉","😌","😍","🥰","😘","😗","😙","😚","😋","😛","😝","😜","🤪","🤨","🧐","🤓","😎","🥸","🤩","🥳","😏","😒","😞","😔","😟","😕","🙁","☹️","😣","😖","😫","😩","🥺","😢","😭","😤","😠","😡","🤬","🤯","😳","🥵","🥶","😱","😨","😰","😥","😓","🤗","🤔","🤭","🤫","🤥","😶","😐","😑","😬","🙄","😯","😦","😧","😮","😲","🥱","😴","🤤","😪","😵","🤐","🥴","🤢","🤮","🤧","😷","🤒","🤕","🤑","🤠","😈","👿","👹","👺","🤡","💩","👻","💀","☠️","👽","👾","🤖","🎃","😺","😸","😹","😻","😼","😽","🙀","😿","😾","🙈","🙉","🙊","💋","💌","💘","💝","💖","💗","💓","💞","💕","💟","❣️","💔","❤️","🧡","💛","💚","💙","💜","🤎","🖤","🤍","💯","💢","💥","💫","💦","💨","🕳️","💣","💬","👋","🤚","✋","🖖","👌","🤌","🤏","✌️","🤞","🤟","🤘","🤙","👈","👉","👆","🖕","👇","☝️","👍","👎","✊","👊","🤛","🤜","👏","🙌","👐","🤲","🤝","🙏","✍️","💅","🤳","💪","🦾","🦵","🦿","🦶","👂","🦻","👃","🧠","🦷","🦴","👀","👁️","👅","👄","💋","🔥","✨","⭐","🌟","💫","⚡","☀️","⛅","☁️","🌙","🌞","⭐","🌍","🌎","🌏","🌈","💧","❄️","🌊","🎉","🎊","🎈","🎁","🏆","🏅","🥇","🥈","🥉","⚽","🏀","🏈","⚾","🎾","🏐","🏉","🎱","🏓","🏸","🥅","🏒","🏑","🏏","⛳","🏹","🎣","🥊","🥋","🎽","🛹","🥌","🎿","⛷️","🏂","🏋️","🤼","🤸","🤺","⛸️","🎤","🎧","🎼","🎹","🥁","🎷","🎺","🎸","🪕","🎻","🎲","♟️","🎭","🎨","🎬","🎪","🎟️","🎫","🎖️","🏆","🏅","🥇","🥈","🥉","🏅"];
-    
-    let emojiPickerCallback = null;
-    function openEmojiPicker(onSelect) {
-      emojiPickerCallback = onSelect;
-      const grid = $("#emojiGrid");
-      grid.innerHTML = "";
-      EMOJI_LIST.slice(0, 54).forEach(emoji => {
-        const div = document.createElement("div");
-        div.className = "emoji-option";
-        div.textContent = emoji;
-        div.addEventListener("click", () => {
-          if (emojiPickerCallback) emojiPickerCallback(emoji);
-          closeEmojiPicker();
-        });
-        grid.appendChild(div);
-      });
-      $("#emojiModal").style.display = "flex";
-    }
-    function closeEmojiPicker() {
-      $("#emojiModal").style.display = "none";
-      emojiPickerCallback = null;
-    }
-
-    // ---------- Avatar helper (исправлен: убран inline font-size) ----------
-    function getAvatar(avatarUrl) {
-      if (!avatarUrl) return `<span class="avatar">${DEFAULT_AVATAR_EMOJI}</span>`;
-      if (!avatarUrl.startsWith('data:') && !avatarUrl.startsWith('http')) {
-        // эмодзи – убираем inline style, полагаемся на CSS-класс .avatar
-        return `<span class="avatar">${avatarUrl.slice(0,2)}</span>`;
-      }
-      return `<img class="avatar" src="${avatarUrl}" alt="" />`;
+    function getAvatar() {
+      return `<span class="avatar">${DEFAULT_AVATAR}</span>`;
     }
 
     const appState = {
@@ -1196,8 +977,7 @@
         requests: { incoming: {}, outgoing: {} },
         notifications: [],
         usersByKey: {},
-        unreadCounts: {},
-        lastReadTimestamps: {}
+        unreadCounts: {}
       },
       ui: {
         activeChat: null,
@@ -1209,13 +989,8 @@
         isSending: false,
         isAtBottom: true,
         typingTimer: null,
-        selectedGroupMembers: new Set(),
-        selectedAdminMember: "",
         profileHasChanges: false,
         pendingChatAction: null,
-        groupParticipantsVisible: false,
-        lastGroupId: null,
-        friendsListCache: null,
         currentListenerUnsub: null
       }
     };
@@ -1239,8 +1014,8 @@
     const fmtDateTime = (ts) => ts ? new Date(ts).toLocaleString("ru-RU") : "—";
     const displayName = (u) => String(u?.displayName || "").trim() || `@${u?.username || "unknown"}`;
     const privateChatId = (a, b) => [normalizeKey(a), normalizeKey(b)].sort().join("__");
-    const activeChatKey = () => appState.ui.activeChat ? `${appState.ui.activeChat.type}_${appState.ui.activeChat.id}` : "";
-    const messagePath = () => appState.ui.activeChat?.type === "group" ? `groups/${appState.ui.activeChat.id}/messages` : `messages/${appState.ui.activeChat?.id}`;
+    const activeChatKey = () => `private_${appState.ui.activeChat?.id}`;
+    const messagePath = () => `messages/${appState.ui.activeChat?.id}`;
 
     async function hashPassword(raw) {
       const bytes = new TextEncoder().encode(raw);
@@ -1338,13 +1113,13 @@
         const item = document.createElement("button");
         item.type = "button";
         item.className = `chat-item ${appState.ui.activeChat?.id === d.id ? "active" : ""}`;
-        const avatarHtml = getAvatar(d.avatarUrl);
+        const avatarHtml = getAvatar();
         item.innerHTML = `
           <div class="row-flex">
             ${avatarHtml}
             <div style="min-width:0; flex:1;">
               <div class="chat-main">
-                <span class="chat-name">${esc(d.type === "group" ? d.name : d.peerDisplayName)}</span>
+                <span class="chat-name">${esc(d.peerDisplayName)}</span>
                 <span class="chat-time">${fmtTime(d.lastAt)}</span>
               </div>
               <div class="chat-preview">${esc(d.lastMessage || "Пусто")}</div>
@@ -1352,10 +1127,7 @@
             ${unread ? `<span class="unread-badge">${unread}</span>` : ''}
           </div>
         `;
-        item.addEventListener("click", () => {
-          if (d.type === "group") openGroupDialog(d);
-          else openPrivateDialog({ username: d.peer });
-        });
+        item.addEventListener("click", () => openPrivateDialog({ username: d.peer }));
         root.appendChild(item);
       });
     }
@@ -1373,17 +1145,16 @@
         item.type = "button";
         item.className = "chat-item";
         item.dataset.searchUserKey = u.usernameKey;
-        const avatarHtml = getAvatar(u.avatarUrl);
+        const avatarHtml = getAvatar();
         item.innerHTML = `<div class="row-flex">${avatarHtml}<div><div class="chat-name">${esc(displayName(u))}</div><div class="chat-preview">@${esc(u.username)} · ${esc(u.status || "")}</div></div></div>`;
+        item.addEventListener("click", () => openPrivateDialog(u));
         root.appendChild(item);
       });
     }
 
     function renderMessages() {
       const root = $("messages");
-      const allRows = appState.data.messages
-        .filter((m) => !appState.data.hiddenMessages[m.id])
-        .filter((m) => !appState.user?.blocks?.[m.fromKey]);
+      const allRows = appState.data.messages.filter((m) => !appState.data.hiddenMessages[m.id]);
       if (!allRows.length) {
         root.innerHTML = '<div class="empty">Диалог открыт. Напишите первое сообщение.</div>';
         return;
@@ -1516,8 +1287,6 @@
       appState.data.hiddenMessages = hiddenSnap.val() || {};
       
       $("chatTitleText").textContent = appState.ui.activeChat.peerDisplayName;
-      $("chatCode").textContent = `chat: ${appState.ui.activeChat.id}`;
-      $("editGroupBtn").style.display = "none";
       
       await watchPresence();
       await watchMessages();
@@ -1533,62 +1302,20 @@
       renderDialogs();
     }
 
-    async function openGroupDialog(dialog) {
-      const id = dialog.groupId || dialog.id;
-      const snap = await get(ref(db, `groups/${id}`));
-      if (!snap.exists()) return;
-      const group = snap.val();
-      
-      unsubscribeMessages();
-      clearListener("presence");
-      clearListener("typing");
-      
-      appState.ui.activeChat = { type: "group", id, name: group.name || dialog.name || "Группа" };
-      appState.ui.selectedMessageId = null;
-      appState.ui.replyTo = null;
-      $("replyPreview").style.display = "none";
-      
-      const hiddenSnap = await get(ref(db, `hiddenMessages/${appState.user.usernameKey}/${activeChatKey()}`));
-      appState.data.hiddenMessages = hiddenSnap.val() || {};
-      
-      $("chatTitleText").textContent = appState.ui.activeChat.name;
-      $("chatCode").textContent = `group: ${id}`;
-      $("editGroupBtn").style.display = "inline-flex";
-      
-      await watchPresence();
-      await watchMessages();
-      await watchTyping();
-      
-      if (appState.ui.groupParticipantsVisible && appState.ui.lastGroupId === id) {
-        showGroupParticipants(id, true);
-      } else {
-        showGroupParticipants(id, false);
-      }
-      
-      switchPage("chatPage");
-      markChatAsRead(id);
-      renderDialogs();
-    }
-
     function watchDialogs() {
       const userKey = appState.user.usernameKey;
       setListener("dialogs", onValue(ref(db, `userChats/${userKey}`), async (snap) => {
-        const raw = Object.values(snap.val() || {}).filter((x) => !x.hidden);
+        const raw = Object.values(snap.val() || {}).filter((x) => !x.hidden && x.type !== "group");
         const dialogs = await Promise.all(raw.map(async (d) => {
-          if (d.type === "group") {
-            const g = await get(ref(db, `groups/${d.groupId || d.id}`));
-            const gv = g.val() || {};
-            return { ...d, id: d.groupId || d.id, type: "group", name: gv.name || d.name || "Группа", avatarUrl: gv.avatarUrl || "" };
-          }
           const peerKey = normalizeKey(d.peer);
           const peerSnap = await get(ref(db, `users/${peerKey}`));
           const peer = peerSnap.val() || { username: d.peer, displayName: d.peer };
-          return { ...d, id: d.chatId || d.id, type: "private", peer: peer.username, peerDisplayName: displayName(peer), avatarUrl: peer.avatarUrl || "" };
+          return { ...d, id: d.chatId || d.id, type: "private", peer: peer.username, peerDisplayName: displayName(peer) };
         }));
         appState.data.dialogs = dialogs;
         for (const d of dialogs) {
           const lastRead = d.lastRead || 0;
-          const messagesSnap = await get(ref(db, d.type === "group" ? `groups/${d.id}/messages` : `messages/${d.id}`));
+          const messagesSnap = await get(ref(db, `messages/${d.id}`));
           const msgs = Object.values(messagesSnap.val() || {}).filter(m => m.createdAt > lastRead && m.fromKey !== userKey);
           appState.data.unreadCounts[d.id] = msgs.length;
         }
@@ -1613,7 +1340,6 @@
     async function watchPresence() {
       clearListener("presence");
       if (!appState.ui.activeChat) { $("presence").textContent = "Статус: —"; return; }
-      if (appState.ui.activeChat.type === "group") { $("presence").textContent = "Статус: групповой чат"; return; }
       setListener("presence", onValue(ref(db, `presence/${appState.ui.activeChat.peerKey}`), (snap) => {
         const val = snap.val() || {};
         $("presence").textContent = val.online ? "Статус: онлайн" : `Был(а): ${fmtDateTime(val.lastSeen)}`;
@@ -1636,7 +1362,6 @@
       }));
     }
 
-    // Исправленная отправка: поле очищается сразу, текст не возвращается
     async function sendMessage(text, meta = {}) {
       if (!appState.ui.activeChat || appState.ui.isSending) return;
       const cleanText = text.trim();
@@ -1665,28 +1390,17 @@
         const updates = {};
         updates[`${messagePath()}/${messageId}`] = payload;
         
-        if (appState.ui.activeChat.type === "private") {
-          const peerKey = appState.ui.activeChat.peerKey;
-          updates[`userChats/${appState.user.usernameKey}/${appState.ui.activeChat.id}`] = {
-            type: "private", id: appState.ui.activeChat.id, chatId: appState.ui.activeChat.id,
-            peer: appState.ui.activeChat.peerUsername, peerDisplayName: appState.ui.activeChat.peerDisplayName,
-            lastMessage: cleanText.slice(0, 120), lastAt: now
-          };
-          updates[`userChats/${peerKey}/${appState.ui.activeChat.id}`] = {
-            type: "private", id: appState.ui.activeChat.id, chatId: appState.ui.activeChat.id,
-            peer: appState.user.username, peerDisplayName: displayName(appState.user),
-            lastMessage: cleanText.slice(0, 120), lastAt: now
-          };
-        } else {
-          const membersSnap = await get(ref(db, `groups/${appState.ui.activeChat.id}/members`));
-          const members = Object.keys(membersSnap.val() || {});
-          members.forEach(m => {
-            updates[`userChats/${m}/${appState.ui.activeChat.id}`] = {
-              type: "group", id: appState.ui.activeChat.id, groupId: appState.ui.activeChat.id,
-              name: appState.ui.activeChat.name, lastMessage: cleanText.slice(0, 120), lastAt: now
-            };
-          });
-        }
+        const peerKey = appState.ui.activeChat.peerKey;
+        updates[`userChats/${appState.user.usernameKey}/${appState.ui.activeChat.id}`] = {
+          type: "private", id: appState.ui.activeChat.id, chatId: appState.ui.activeChat.id,
+          peer: appState.ui.activeChat.peerUsername, peerDisplayName: appState.ui.activeChat.peerDisplayName,
+          lastMessage: cleanText.slice(0, 120), lastAt: now
+        };
+        updates[`userChats/${peerKey}/${appState.ui.activeChat.id}`] = {
+          type: "private", id: appState.ui.activeChat.id, chatId: appState.ui.activeChat.id,
+          peer: appState.user.username, peerDisplayName: displayName(appState.user),
+          lastMessage: cleanText.slice(0, 120), lastAt: now
+        };
         
         await update(ref(db), updates);
         
@@ -1697,7 +1411,6 @@
         refreshDialogs().catch(console.warn);
       } catch (e) {
         console.error(e);
-        // Не возвращаем текст, просто показываем ошибку
         setStatus("Ошибка отправки. Попробуйте снова.", true);
         setTimeout(() => setStatus(""), 3000);
       } finally {
@@ -1710,22 +1423,17 @@
     async function refreshDialogs() {
       const userKey = appState.user.usernameKey;
       const snap = await get(ref(db, `userChats/${userKey}`));
-      const raw = Object.values(snap.val() || {}).filter((x) => !x.hidden);
+      const raw = Object.values(snap.val() || {}).filter((x) => !x.hidden && x.type !== "group");
       const dialogs = await Promise.all(raw.map(async (d) => {
-        if (d.type === "group") {
-          const g = await get(ref(db, `groups/${d.groupId || d.id}`));
-          const gv = g.val() || {};
-          return { ...d, id: d.groupId || d.id, type: "group", name: gv.name || d.name || "Группа", avatarUrl: gv.avatarUrl || "" };
-        }
         const peerKey = normalizeKey(d.peer);
         const peerSnap = await get(ref(db, `users/${peerKey}`));
         const peer = peerSnap.val() || { username: d.peer, displayName: d.peer };
-        return { ...d, id: d.chatId || d.id, type: "private", peer: peer.username, peerDisplayName: displayName(peer), avatarUrl: peer.avatarUrl || "" };
+        return { ...d, id: d.chatId || d.id, type: "private", peer: peer.username, peerDisplayName: displayName(peer) };
       }));
       appState.data.dialogs = dialogs;
       for (const d of dialogs) {
         const lastRead = d.lastRead || 0;
-        const messagesSnap = await get(ref(db, d.type === "group" ? `groups/${d.id}/messages` : `messages/${d.id}`));
+        const messagesSnap = await get(ref(db, `messages/${d.id}`));
         const msgs = Object.values(messagesSnap.val() || {}).filter(m => m.createdAt > lastRead && m.fromKey !== userKey);
         appState.data.unreadCounts[d.id] = msgs.length;
       }
@@ -1829,7 +1537,7 @@
       const user = {
         username, usernameKey,
         displayName: $("displayNameInput").value.trim() || username,
-        status: "", avatarUrl: DEFAULT_AVATAR_EMOJI,
+        status: "",
         passHash: await hashPassword(password),
         incomingRequests: {}, outgoingRequests: {}, friends: {},
         createdAt: Date.now(), lastSeen: Date.now()
@@ -1853,7 +1561,7 @@
       unsubscribeMessages();
       localStorage.removeItem(LS_SESSION);
       appState.user = null;
-      appState.data = { dialogs: [], messages: [], hiddenMessages: {}, friends: {}, requests: { incoming: {}, outgoing: {} }, notifications: [], usersByKey: {}, unreadCounts: {}, lastReadTimestamps: {} };
+      appState.data = { dialogs: [], messages: [], hiddenMessages: {}, friends: {}, requests: { incoming: {}, outgoing: {} }, notifications: [], usersByKey: {}, unreadCounts: {} };
       appState.ui.activeChat = null;
       switchPage("authPage");
       $("dialogsList").innerHTML = "";
@@ -1879,7 +1587,7 @@
       const snap = await get(msgRef);
       if (!snap.exists()) return;
       const msg = snap.val();
-      if (msg.fromKey === appState.user.usernameKey || appState.ui.activeChat.type === "group" && appState.user.usernameKey === msg.fromKey) {
+      if (msg.fromKey === appState.user.usernameKey) {
         await remove(msgRef);
       } else {
         alert("Нельзя удалить чужое сообщение у всех");
@@ -1895,24 +1603,19 @@
     }
 
     function showChatActionModal(actionType) {
-      const isPrivate = appState.ui.activeChat?.type === "private";
       $("chatActionTitle").textContent = actionType === "delete" ? "Удалить чат" : "Очистить чат";
-      if (!isPrivate) {
-        executeChatAction("onlyme");
-        return;
-      }
       $("chatActionDescription").textContent = "Выберите вариант:";
-      $("chatActionEveryoneBtn").style.display = isPrivate ? "block" : "none";
-      $("chatActionOnlyMeBtn").textContent = isPrivate && actionType === "delete" ? "Только у меня (скрыть)" : "Только у меня";
-      appState.ui.pendingChatAction = { type: actionType, chatId: appState.ui.activeChat.id, isPrivate };
+      $("chatActionEveryoneBtn").style.display = "block";
+      $("chatActionOnlyMeBtn").textContent = actionType === "delete" ? "Только у меня (скрыть)" : "Только у меня";
+      appState.ui.pendingChatAction = { type: actionType, chatId: appState.ui.activeChat.id, isPrivate: true };
       $("chatActionModal").style.display = "flex";
     }
 
     async function executeChatAction(scope) {
-      const { type, chatId, isPrivate } = appState.ui.pendingChatAction || {};
+      const { type, chatId } = appState.ui.pendingChatAction || {};
       if (!chatId) return;
       if (type === "delete") {
-        if (scope === "everyone" && isPrivate) {
+        if (scope === "everyone") {
           const peer = appState.ui.activeChat.peerKey;
           await update(ref(db), {
             [`userChats/${appState.user.usernameKey}/${chatId}`]: null,
@@ -1925,7 +1628,7 @@
           renderMessages();
         }
       } else if (type === "clear") {
-        if (scope === "everyone" && isPrivate) {
+        if (scope === "everyone") {
           await remove(ref(db, `messages/${chatId}`));
         } else {
           const patch = {};
@@ -1944,12 +1647,8 @@
       appState.ui.selectedMessageId = null;
       document.querySelector(".chat-view").classList.remove("with-inline-profile");
       $("chatTitleText").textContent = "";
-      $("chatCode").textContent = "chat: ---";
       $("presence").textContent = "Статус: —";
       $("messages").innerHTML = '<div class="empty">Найдите пользователя по логину, откройте диалог и начните переписку.</div>';
-      $("editGroupBtn").style.display = "none";
-      appState.ui.groupParticipantsVisible = false;
-      appState.ui.lastGroupId = null;
     }
 
     async function openForwardModal() {
@@ -1969,30 +1668,13 @@
           const row = document.createElement("button");
           row.type = "button";
           row.className = "chat-item";
-          const avatarHtml = getAvatar(user.avatarUrl);
+          const avatarHtml = getAvatar();
           row.innerHTML = `<div class="row-flex">${avatarHtml}<div class="chat-name">${esc(displayName(user))}</div><div class="chat-preview">@${esc(user.username)}</div></div>`;
           row.addEventListener("click", async () => { await forwardToPrivate(user); $("forwardModal").style.display = "none"; });
           root.appendChild(row);
         }
       }
-      const groupsSnap = await get(ref(db, "groups"));
-      const groups = Object.entries(groupsSnap.val() || {}).filter(([_, g]) => g.members?.[appState.user.usernameKey]);
-      if (groups.length) {
-        const groupTitle = document.createElement("div");
-        groupTitle.className = "ghost";
-        groupTitle.textContent = "Группы";
-        root.appendChild(groupTitle);
-        groups.forEach(([id, g]) => {
-          const row = document.createElement("button");
-          row.type = "button";
-          row.className = "chat-item";
-          const avatarHtml = getAvatar(g.avatarUrl);
-          row.innerHTML = `<div class="row-flex">${avatarHtml}<div class="chat-name">${esc(g.name || "Группа")}</div><div class="chat-preview">Группа</div></div>`;
-          row.addEventListener("click", async () => { await forwardToGroup(id, g.name); $("forwardModal").style.display = "none"; });
-          root.appendChild(row);
-        });
-      }
-      if (!root.children.length) root.innerHTML = '<div class="ghost">Нет друзей или групп для пересылки.</div>';
+      if (!root.children.length) root.innerHTML = '<div class="ghost">Нет друзей для пересылки.</div>';
       $("forwardModal").style.display = "flex";
     }
 
@@ -2003,36 +1685,18 @@
       const back = appState.ui.activeChat;
       await openPrivateDialog(user);
       await sendMessage(msg.text, { forwarded: true, originalSender: msg.fromName || msg.from });
-      if (back?.type === "group") await openGroupDialog(back);
-      else if (back?.peerUsername) await openPrivateDialog({ username: back.peerUsername });
-    }
-
-    async function forwardToGroup(groupId, groupName) {
-      const source = await get(ref(db, `${messagePath()}/${appState.ui.selectedMessageId}`));
-      if (!source.exists()) return;
-      const msg = source.val();
-      const back = appState.ui.activeChat;
-      await openGroupDialog({ groupId, name: groupName });
-      await sendMessage(msg.text, { forwarded: true, originalSender: msg.fromName || msg.from });
-      if (back?.type === "group") await openGroupDialog(back);
-      else if (back?.peerUsername) await openPrivateDialog({ username: back.peerUsername });
+      if (back) await openPrivateDialog({ username: back.peerUsername });
     }
 
     async function saveProfile() {
       if (!appState.user) return;
-      const newAvatar = appState.user.tempAvatarEmoji || appState.user.avatarUrl || DEFAULT_AVATAR_EMOJI;
       const patch = {
         displayName: $("profileDisplayNameInput").value.trim().slice(0, 64) || appState.user.username,
-        status: $("profileStatusInput").value.trim().slice(0, 120),
-        avatarUrl: newAvatar
+        status: $("profileStatusInput").value.trim().slice(0, 120)
       };
       await update(ref(db, `users/${appState.user.usernameKey}`), patch);
-      appState.user.avatarUrl = patch.avatarUrl;
       appState.user.displayName = patch.displayName;
       appState.user.status = patch.status;
-      delete appState.user.tempAvatarEmoji;
-      
-      $("profileAvatar").innerHTML = getAvatar(patch.avatarUrl);
       $("profileName").textContent = patch.displayName;
       $("profileStatusText").textContent = `Статус: ${patch.status || "—"}`;
       $("meLogin").textContent = patch.displayName;
@@ -2045,128 +1709,15 @@
       }
       appState.ui.profileUser = user;
       document.querySelector(".chat-view").classList.add("with-inline-profile");
-      $("groupParticipantsBox").style.display = "none";
       $("profileContent").style.display = "block";
       $("inlineProfileBackBtn").style.display = "inline-flex";
       ["inlineProfileAvatar","inlineProfileName","inlineProfileUsername","inlineProfileStatus","inlineProfileFriendStatus","inlineFriendActionBtn"].forEach(id => $(id).style.display = "");
-      $("inlineProfileAvatar").innerHTML = getAvatar(user.avatarUrl);
+      $("inlineProfileAvatar").innerHTML = getAvatar();
       $("inlineProfileName").textContent = displayName(user);
       $("inlineProfileUsername").textContent = `@${user.username}`;
       $("inlineProfileStatus").textContent = `Статус: ${user.status || "—"}`;
       $("inlineProfileFriendStatus").textContent = appState.data.friends[user.usernameKey] ? "Статус дружбы: Friend" : "Статус дружбы: Not Friend";
       updateFriendButtonForUser(user);
-      appState.ui.groupParticipantsVisible = false;
-    }
-
-    async function showGroupParticipants(groupId, keepCache = false) {
-      const snap = await get(ref(db, `groups/${groupId}`));
-      if (!snap.exists()) return;
-      const group = snap.val();
-      
-      if (keepCache && appState.ui.lastGroupId === groupId && appState.ui.groupParticipantsVisible) {
-        document.querySelector(".chat-view").classList.add("with-inline-profile");
-        $("groupParticipantsBox").style.display = "grid";
-        $("profileContent").style.display = "none";
-        $("inlineProfileBackBtn").style.display = "inline-flex";
-        return;
-      }
-      
-      appState.ui.lastGroupId = groupId;
-      appState.ui.groupParticipantsVisible = true;
-      document.querySelector(".chat-view").classList.add("with-inline-profile");
-      $("groupParticipantsBox").style.display = "grid";
-      $("profileContent").style.display = "none";
-      $("inlineProfileBackBtn").style.display = "inline-flex";
-      $("inlineProfileName").textContent = `Участники: ${group.name || "Группа"}`;
-      ["inlineProfileAvatar","inlineProfileUsername","inlineProfileStatus","inlineProfileFriendStatus","inlineFriendActionBtn"].forEach(id => $(id).style.display = "none");
-      const box = $("groupParticipantsBox");
-      box.innerHTML = "";
-      const members = Object.entries(group.members || {});
-      const selfEntry = members.find(([id]) => id === appState.user.usernameKey);
-      if (selfEntry) {
-        const selfRow = document.createElement("div");
-        selfRow.className = "group-participant-item self";
-        const avatarHtml = getAvatar(appState.user.avatarUrl);
-        selfRow.innerHTML = `${avatarHtml}<div><b>${displayName(appState.user)} (Это вы)</b><br><span class="chat-preview">@${appState.user.username}</span></div>`;
-        box.appendChild(selfRow);
-      }
-      for (const [memberId] of members) {
-        if (memberId === appState.user.usernameKey) continue;
-        const u = await get(ref(db, `users/${memberId}`));
-        if (!u.exists()) continue;
-        const user = u.val();
-        const row = document.createElement("button");
-        row.className = "chat-item";
-        const avatarHtml = getAvatar(user.avatarUrl);
-        row.innerHTML = `<div class="row-flex">${avatarHtml}<div><div class="chat-name">${displayName(user)}</div><div class="chat-preview">@${user.username}</div></div></div>`;
-        row.addEventListener("click", () => showInlineProfile(user));
-        box.appendChild(row);
-      }
-    }
-
-    // Исправленное открытие модалки группы: каждый друг получает обработчик выделения
-    async function openGroupModal() {
-      const root = $("groupFriendsList");
-      root.innerHTML = "";
-      appState.ui.selectedGroupMembers.clear();
-      for (const key of Object.keys(appState.data.friends || {})) {
-        const u = await get(ref(db, `users/${key}`));
-        if (!u.exists()) continue;
-        const user = u.val();
-        const row = document.createElement("button");
-        row.type = "button";
-        row.className = "chat-item";
-        row.dataset.memberKey = user.usernameKey;
-        const avatarHtml = getAvatar(user.avatarUrl);
-        row.innerHTML = `<div class="row-flex">${avatarHtml}<div class="chat-name">${esc(displayName(user))}</div><div class="chat-preview">@${esc(user.username)}</div></div>`;
-        row.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const memberKey = row.dataset.memberKey;
-          if (appState.ui.selectedGroupMembers.has(memberKey)) {
-            appState.ui.selectedGroupMembers.delete(memberKey);
-            row.classList.remove("active");
-          } else {
-            appState.ui.selectedGroupMembers.add(memberKey);
-            row.classList.add("active");
-          }
-        });
-        root.appendChild(row);
-      }
-      $("#groupAvatarEmoji").value = "🎉";
-      $("groupModal").style.display = "flex";
-    }
-
-    // Исправленное создание группы: очистка полей и принудительное обновление диалогов
-    async function createGroup() {
-      const name = $("groupNameInput").value.trim().slice(0, 80);
-      if (!name) return alert("Введите название группы");
-      const groupRef = push(ref(db, "groups"));
-      const members = { [appState.user.usernameKey]: true };
-      appState.ui.selectedGroupMembers.forEach((m) => members[m] = true);
-      const avatarEmoji = $("#groupAvatarEmoji").value || DEFAULT_AVATAR_EMOJI;
-      const payload = {
-        name, description: $("groupDescriptionInput").value.trim().slice(0, 160),
-        avatarUrl: avatarEmoji, creatorId: appState.user.usernameKey,
-        members, createdAt: Date.now()
-      };
-      await set(ref(db, `groups/${groupRef.key}`), payload);
-      const updates = {};
-      const now = Date.now();
-      Object.keys(members).forEach((uid) => {
-        updates[`userChats/${uid}/${groupRef.key}`] = {
-          type: "group", id: groupRef.key, groupId: groupRef.key,
-          name, lastMessage: "Группа создана", lastAt: now
-        };
-      });
-      await update(ref(db), updates);
-      $("groupModal").style.display = "none";
-      // Очистка полей
-      $("groupNameInput").value = "";
-      $("groupDescriptionInput").value = "";
-      $("#groupAvatarEmoji").value = "🎉";
-      appState.ui.selectedGroupMembers.clear();
-      // Обновление списка диалогов
-      await refreshDialogs();
     }
 
     async function renderProfileFriends() {
@@ -2184,7 +1735,7 @@
         const friend = snap.val();
         const row = document.createElement("div");
         row.className = "friend-item";
-        const avatarHtml = getAvatar(friend.avatarUrl);
+        const avatarHtml = getAvatar();
         row.innerHTML = `
           <div class="friend-info">
             ${avatarHtml}
@@ -2317,15 +1868,13 @@
 
       $("inlineProfileBackBtn").addEventListener("click", () => {
         document.querySelector(".chat-view").classList.remove("with-inline-profile");
-        appState.ui.groupParticipantsVisible = false;
-        $("inlineProfileBackBtn").style.display = "none";
       });
 
       $("meLogin").addEventListener("click", () => {
         if (!appState.user) return;
         appState.ui.profileUser = appState.user;
         switchPage("profilePage");
-        $("profileAvatar").innerHTML = getAvatar(appState.user.avatarUrl);
+        $("profileAvatar").innerHTML = getAvatar();
         $("profileName").textContent = displayName(appState.user);
         $("profileUsername").textContent = `@${appState.user.username}`;
         $("profileStatusText").textContent = `Статус: ${appState.user.status || "—"}`;
@@ -2349,14 +1898,6 @@
         switchPage("chatPage");
       });
 
-      $("profileChooseEmojiBtn").addEventListener("click", () => {
-        openEmojiPicker((emoji) => {
-          appState.user.tempAvatarEmoji = emoji;
-          $("profileAvatar").innerHTML = getAvatar(emoji);
-          appState.ui.profileHasChanges = true;
-        });
-      });
-
       $("profileDisplayNameInput").addEventListener("input", () => appState.ui.profileHasChanges = true);
       $("profileStatusInput").addEventListener("input", () => appState.ui.profileHasChanges = true);
 
@@ -2375,76 +1916,6 @@
         if (target) await declineFriendRequest(target);
       });
       $("profileMessageBtn").addEventListener("click", () => appState.ui.profileUser && openPrivateDialog(appState.ui.profileUser));
-
-      $("sectionMenuBtn").addEventListener("click", (e) => {
-        e.stopPropagation();
-        const menu = $("sectionMenu");
-        menu.style.display = menu.style.display === "block" ? "none" : "block";
-      });
-      document.addEventListener("click", (e) => {
-        if (!e.target.closest(".section-title-menu")) $("sectionMenu").style.display = "none";
-      });
-      $("sectionCreateGroupBtn").addEventListener("click", () => {
-        $("sectionMenu").style.display = "none";
-        openGroupModal().catch(console.error);
-      });
-
-      $("groupCancelBtn").addEventListener("click", () => $("groupModal").style.display = "none");
-      $("groupCreateBtn").addEventListener("click", () => createGroup().catch(console.error));
-      $("groupChooseEmojiBtn").addEventListener("click", () => {
-        openEmojiPicker((emoji) => {
-          $("#groupAvatarEmoji").value = emoji;
-        });
-      });
-      // Удалён дублирующий обработчик groupFriendsList, который конфликтовал с выделением
-
-      $("editGroupBtn").addEventListener("click", async (e) => {
-        e.stopPropagation();
-        if (!appState.ui.activeChat || appState.ui.activeChat.type !== "group") return;
-        const groupId = appState.ui.activeChat.id;
-        const snap = await get(ref(db, `groups/${groupId}`));
-        if (!snap.exists()) return;
-        const g = snap.val();
-        $("editGroupNameInput").value = g.name || "";
-        $("editGroupDescInput").value = g.description || "";
-        $("#editGroupAvatarEmoji").value = g.avatarUrl || DEFAULT_AVATAR_EMOJI;
-        $("editGroupModal").style.display = "flex";
-      });
-      $("editGroupChooseEmojiBtn").addEventListener("click", () => {
-        openEmojiPicker((emoji) => {
-          $("#editGroupAvatarEmoji").value = emoji;
-        });
-      });
-      $("editGroupCancelBtn").addEventListener("click", () => $("editGroupModal").style.display = "none");
-      $("editGroupSaveBtn").addEventListener("click", async () => {
-        const groupId = appState.ui.activeChat.id;
-        const name = $("editGroupNameInput").value.trim();
-        if (!name) return alert("Введите название");
-        const newAvatar = $("#editGroupAvatarEmoji").value || DEFAULT_AVATAR_EMOJI;
-        const patch = {
-          name,
-          description: $("editGroupDescInput").value.trim(),
-          avatarUrl: newAvatar
-        };
-        await update(ref(db, `groups/${groupId}`), patch);
-        $("editGroupModal").style.display = "none";
-        $("chatTitleText").textContent = name;
-      });
-
-      $("chatTitle").addEventListener("click", (e) => {
-        if (e.target.closest("#editGroupBtn")) return;
-        if (!appState.ui.activeChat) return;
-        if (appState.ui.activeChat.type === "group") {
-          if (!appState.ui.groupParticipantsVisible) {
-            showGroupParticipants(appState.ui.activeChat.id, false);
-          } else {
-            document.querySelector(".chat-view").classList.add("with-inline-profile");
-            $("inlineProfileBackBtn").style.display = "inline-flex";
-          }
-        } else {
-          openPrivateDialog({ username: appState.ui.activeChat.peerUsername });
-        }
-      });
 
       $("chatMenuBtn").addEventListener("click", (e) => {
         e.stopPropagation();
@@ -2495,12 +1966,6 @@
 
       $("messageViewport").addEventListener("scroll", updateScrollHint);
       $("scrollDownBtn").addEventListener("click", scrollToBottom);
-      
-      $("#emojiCancelBtn").addEventListener("click", closeEmojiPicker);
-      // Закрытие модалки эмодзи по клику на фон
-      $("#emojiModal").addEventListener("click", (e) => {
-        if (e.target === $("#emojiModal")) closeEmojiPicker();
-      });
     }
 
     async function restoreSessionHint() {
